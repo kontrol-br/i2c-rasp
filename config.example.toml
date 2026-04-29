@@ -1,0 +1,22 @@
+[scrape]
+timeout_seconds = 5.0
+
+[[hosts]]
+name = "kontrol-lab"
+host = "10.0.0.1"
+port = 9100
+
+[[hosts]]
+name = "kontrol-cloud"
+host = "lab.kontrol.com.br"
+port = 9100
+
+[display]
+width = 20
+height = 4
+page_seconds = 4.0
+refresh_seconds = 2.0
+
+[interfaces]
+# Se vazio, usa as interfaces anunciadas por node_pfsense_interface_info.
+include = ["wan", "opt1", "lan"]
