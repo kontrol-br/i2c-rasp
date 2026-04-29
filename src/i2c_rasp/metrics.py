@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 
 MONITORED_METRIC_NAMES = frozenset(
@@ -146,7 +146,9 @@ class SampleSet:
 
     def first_value(self, name: str, labels: dict[str, str] | None = None) -> float | None:
         for sample in self.values(name):
-            if labels is None or all(sample.labels.get(key) == value for key, value in labels.items()):
+            if labels is None or all(
+                sample.labels.get(key) == value for key, value in labels.items()
+            ):
                 return sample.value
         return None
 

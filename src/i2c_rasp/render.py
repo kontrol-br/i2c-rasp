@@ -10,7 +10,10 @@ def render_pages(snapshot: DeviceSnapshot, width: int, height: int) -> list[list
                 snapshot.hostname,
                 f"{snapshot.os_name} {snapshot.name}",
                 f"CPU {_fmt_percent(snapshot.cpu_percent)} LOAD {_fmt_number(snapshot.load1)}",
-                f"MEM {_fmt_percent(snapshot.memory_percent)} SWP {_fmt_percent(snapshot.swap_percent)}",
+                (
+                    f"MEM {_fmt_percent(snapshot.memory_percent)} "
+                    f"SWP {_fmt_percent(snapshot.swap_percent)}"
+                ),
             ],
             width,
             height,

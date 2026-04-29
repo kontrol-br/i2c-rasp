@@ -37,7 +37,14 @@ def main() -> None:
                 snapshot = builders[host.name].build(host.name, scrapers[host.name].scrape())
                 pages = render_pages(snapshot, config.display.width, config.display.height)
             except ScrapeError as exc:
-                pages = [_error_page(host.name, str(exc), config.display.width, config.display.height)]
+                pages = [
+                    _error_page(
+                        host.name,
+                        str(exc),
+                        config.display.width,
+                        config.display.height,
+                    )
+                ]
 
             for page in pages:
                 print(render_terminal_page(page), flush=True)

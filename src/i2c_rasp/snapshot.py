@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from i2c_rasp.metrics import SampleSet
+from i2c_rasp.metrics import Sample, SampleSet
 from i2c_rasp.scrape import ScrapeResult
 
 
@@ -160,8 +160,12 @@ def _interfaces(
     if interface_names:
         infos = [sample for sample in infos if sample.labels.get("name") in interface_names]
 
-    previous_rx = previous.samples.by_label("node_network_receive_bytes_total", "device") if previous else {}
-    previous_tx = previous.samples.by_label("node_network_transmit_bytes_total", "device") if previous else {}
+    previous_rx = (
+        previous.samples.by_label("node_network_receive_bytes_total", "device") if previous else {}
+    )
+    previous_tx = (
+        previous.samples.by_label("node_network_transmit_bytes_total", "device") if previous else {}
+    )
     current_rx = current.samples.by_label("node_network_receive_bytes_total", "device")
     current_tx = current.samples.by_label("node_network_transmit_bytes_total", "device")
     elapsed = current.scraped_at - previous.scraped_at if previous else None
@@ -188,15 +192,15 @@ def _interfaces(
 
 
 def _rate(
-    current: dict[str, object],
-    previous: dict[str, object],
+    current: dict[str, Sample],
+    previous: dict[str, Sample],
     device: str,
     elapsed: float | None,
 ) -> float | None:
     if not elapsed or elapsed <= 0 or device not in current or device not in previous:
         return None
-    current_value = getattr(current[device], "value")
-    previous_value = getattr(previous[device], "value")
+    current_value = current[device].value
+    previous_value = previous[device].value
     return max(0.0, (current_value - previous_value) / elapsed)
 
 
