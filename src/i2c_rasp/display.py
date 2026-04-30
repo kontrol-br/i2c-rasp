@@ -12,7 +12,7 @@ class OledConfig:
 
 
 class DisplaySink:
-    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
         raise NotImplementedError
 
     def close(self) -> None:
@@ -23,10 +23,11 @@ class DisplaySink:
 
 
 class TerminalSink(DisplaySink):
-    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
-        width = max((len(line) for line in lines), default=0)
+    def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
+        rendered = [_scroll_text(line, max(len(line), 1), frame) for line in lines]
+        width = max((len(line) for line in rendered), default=0)
         border = "+" + "-" * width + "+"
-        body = "\n".join(f"|{line.ljust(width)}|" for line in lines)
+        body = "\n".join(f"|{line.ljust(width)}|" for line in rendered)
         if flash:
             body = f"\033[7m{body}\033[0m"
         print(f"{border}\n{body}\n{border}", flush=True)
@@ -51,12 +52,14 @@ class SSD1306Sink(DisplaySink):
         self._date_y = 52
         self._page_font_size = 14
 
-    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
         from PIL import ImageFont
 
         try:
+            title_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 11)
             page_font = ImageFont.truetype("DejaVuSans-Bold.ttf", self._page_font_size)
         except OSError:
+            title_font = ImageFont.load_default()
             page_font = ImageFont.load_default()
 
         visible_lines = [line for line in lines[: self._rows] if line.strip()]
@@ -72,7 +75,9 @@ class SSD1306Sink(DisplaySink):
                 draw.rectangle((0, 0, self._device.width, self._device.height), outline=255, fill=255)
             for row, raw_line in enumerate(visible_lines):
                 color = 0 if flash else 255
-                draw.text((0, start_y + row * line_height), raw_line[: self._columns], fill=color, font=page_font)
+                line = _scroll_text(raw_line, self._columns, frame)
+                font = title_font if row == 0 else page_font
+                draw.text((0, start_y + row * line_height), line, fill=color, font=font)
 
     def close(self) -> None:
         self._device.clear()
@@ -94,3 +99,13 @@ class SSD1306Sink(DisplaySink):
             time_x = max(0, (self._device.width - time_width) // 2)
             draw.text((time_x, self._time_y), time_text, fill=255, font=time_font)
             draw.text((0, self._date_y), date_text, fill=255, font=date_font)
+
+
+def _scroll_text(text: str, width: int, frame: int) -> str:
+    if len(text) <= width:
+        return text
+    gap = "   "
+    loop = text + gap
+    start = frame % len(loop)
+    doubled = loop + loop
+    return doubled[start : start + width]

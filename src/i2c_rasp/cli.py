@@ -13,8 +13,7 @@ from i2c_rasp.render import render_pages
 from i2c_rasp.scrape import MetricsScraper, ScrapeError
 from i2c_rasp.snapshot import SnapshotBuilder
 
-FLASH_HZ = 2.0
-FLASH_STEP_SECONDS = 1.0 / (FLASH_HZ * 2.0)
+FRAME_STEP_SECONDS = 0.25
 
 
 def main() -> None:
@@ -136,26 +135,36 @@ def _show_page_with_alert(
     once: bool,
 ) -> None:
     if not alert:
-        sink.show_page(page, flash=False)
-        if not once:
-            sleep(page_seconds)
+        if once:
+            sink.show_page(page, flash=False, frame=0)
+            return
+        _animate_page(sink, page, page_seconds, flash=False, flash_blink=False)
         return
 
     total_seconds = page_seconds * 2.0
-    elapsed = 0.0
-    flash_on = True
     buzzer.on()
     try:
-        while elapsed < total_seconds:
-            sink.show_page(page, flash=flash_on)
-            if once:
-                break
-            step = min(FLASH_STEP_SECONDS, total_seconds - elapsed)
-            sleep(step)
-            elapsed += step
-            flash_on = not flash_on
+        if once:
+            sink.show_page(page, flash=True, frame=0)
+            return
+        _animate_page(sink, page, total_seconds, flash=True, flash_blink=True)
     finally:
         buzzer.off()
+
+
+def _animate_page(sink, page: list[str], total_seconds: float, flash: bool, flash_blink: bool) -> None:
+    elapsed = 0.0
+    frame = 0
+    while elapsed < total_seconds:
+        if flash_blink:
+            flash_on = frame % 2 == 0
+        else:
+            flash_on = flash
+        sink.show_page(page, flash=flash_on, frame=frame)
+        step = min(FRAME_STEP_SECONDS, total_seconds - elapsed)
+        sleep(step)
+        elapsed += step
+        frame += 1
 
 
 if __name__ == "__main__":

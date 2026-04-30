@@ -5,7 +5,7 @@ class FakeSink:
     def __init__(self):
         self.calls = []
 
-    def show_page(self, page, flash=False):
+    def show_page(self, page, flash=False, frame=0):
         self.calls.append((tuple(page), flash))
 
 
