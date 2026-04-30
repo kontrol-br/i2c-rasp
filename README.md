@@ -29,7 +29,22 @@ enabled = true
 i2c_port = 1
 i2c_address = 60 # 0x3C
 rotate = 0
+
+[alert_thresholds]
+cpu_percent = 85
+memory_percent = 90
+storage_percent = 90
+temperature_celsius = 75
+
+[buzzer]
+enabled = false
+gpio_pin = 18
 ```
+
+Quando um limite e atingido, a pagina correspondente entra em modo flash (inverte fundo/texto).
+Cada metrica principal fica em sua propria tela: CPU, Memoria, Interfaces, Storage e Temperatura.
+CPU, Memoria, Storage e Temperatura disparam alerta individualmente por tela.
+Se o buzzer estiver habilitado, ele toca enquanto a pagina em alerta estiver sendo exibida.
 
 ## Execucao
 
