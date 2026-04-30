@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 from time import sleep
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from i2c_rasp.config import HostConfig, load_config
 from i2c_rasp.display import SSD1306Sink, TerminalSink
@@ -54,6 +56,11 @@ def main() -> None:
                 sink.show_page(page)
                 if not args.once:
                     sleep(config.display.page_seconds)
+
+        clock_page = _clock_page(config.display.width, config.display.height)
+        sink.show_page(clock_page)
+        if not args.once:
+            sleep(config.display.page_seconds)
         if args.once:
             break
         sleep(config.display.refresh_seconds)
@@ -87,6 +94,18 @@ def _error_page(name: str, message: str, width: int, height: int) -> list[str]:
     while len(fitted) < height:
         fitted.append(" " * width)
     return fitted
+
+
+def _clock_page(width: int, height: int) -> list[str]:
+    now = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    timezone_label = "SAO PAULO, BRASIL"
+    time_line = now.strftime("%H:%M:%S").center(width)
+    date_line = now.strftime("%d/%m/%Y").center(width)
+
+    lines = [timezone_label[:width].ljust(width), time_line[:width].ljust(width), date_line[:width].ljust(width)]
+    while len(lines) < height:
+        lines.append(" " * width)
+    return lines
 
 
 if __name__ == "__main__":
