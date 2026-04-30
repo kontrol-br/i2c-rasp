@@ -76,13 +76,28 @@ class SSD1306Sink(DisplaySink):
                 draw.rectangle((0, 0, self._device.width, self._device.height), outline=255, fill=255)
             for row, raw_line in enumerate(visible_lines):
                 color = 0 if flash else 255
-                line = _scroll_text(raw_line, self._columns, frame)
                 if row == 0:
-                    draw.text((0, self._page_title_y), line, fill=color, font=title_font)
+                    _draw_scrolling_text(
+                        draw=draw,
+                        text=raw_line,
+                        font=title_font,
+                        y=self._page_title_y,
+                        color=color,
+                        frame=frame,
+                        device_width=self._device.width,
+                    )
                     continue
                 body_row = row - 1
                 y = self._page_body_start_y + body_row * line_height
-                draw.text((0, y), line, fill=color, font=page_font)
+                _draw_scrolling_text(
+                    draw=draw,
+                    text=raw_line,
+                    font=page_font,
+                    y=y,
+                    color=color,
+                    frame=frame,
+                    device_width=self._device.width,
+                )
 
     def close(self) -> None:
         self._device.clear()
@@ -114,3 +129,22 @@ def _scroll_text(text: str, width: int, frame: int) -> str:
     start = frame % len(loop)
     doubled = loop + loop
     return doubled[start : start + width]
+
+
+def _draw_scrolling_text(draw, text: str, font, y: int, color: int, frame: int, device_width: int) -> None:
+    clean_text = text.rstrip()
+    if not clean_text:
+        return
+
+    text_bbox = draw.textbbox((0, 0), clean_text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    if text_width <= device_width:
+        draw.text((0, y), clean_text, fill=color, font=font)
+        return
+
+    gap_pixels = 24
+    speed_pixels_per_frame = 2
+    loop_width = text_width + gap_pixels
+    offset = (frame * speed_pixels_per_frame) % loop_width
+    draw.text((-offset, y), clean_text, fill=color, font=font)
+    draw.text((loop_width - offset, y), clean_text, fill=color, font=font)
