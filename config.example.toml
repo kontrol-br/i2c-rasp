@@ -26,3 +26,15 @@ enabled = true
 i2c_port = 1
 i2c_address = 60 # 0x3C
 rotate = 0
+
+[alert_thresholds]
+# Percentuais
+cpu_percent = 85
+memory_percent = 90
+storage_percent = 90
+# Celsius
+temperature_celsius = 75
+
+[buzzer]
+enabled = false
+gpio_pin = 18
