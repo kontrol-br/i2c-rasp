@@ -51,6 +51,8 @@ class SSD1306Sink(DisplaySink):
         self._time_y = 14
         self._date_y = 52
         self._page_font_size = 14
+        self._page_title_y = 0
+        self._page_body_start_y = 14
 
     def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
         from PIL import ImageFont
@@ -68,7 +70,6 @@ class SSD1306Sink(DisplaySink):
         sample_bbox = page_font.getbbox("Ag")
         text_height = max(10, sample_bbox[3] - sample_bbox[1])
         line_height = text_height + 2
-        start_y = max(0, (self._device.height - (line_height * len(visible_lines))) // 2)
 
         with self._canvas(self._device) as draw:
             if flash:
@@ -76,8 +77,12 @@ class SSD1306Sink(DisplaySink):
             for row, raw_line in enumerate(visible_lines):
                 color = 0 if flash else 255
                 line = _scroll_text(raw_line, self._columns, frame)
-                font = title_font if row == 0 else page_font
-                draw.text((0, start_y + row * line_height), line, fill=color, font=font)
+                if row == 0:
+                    draw.text((0, self._page_title_y), line, fill=color, font=title_font)
+                    continue
+                body_row = row - 1
+                y = self._page_body_start_y + body_row * line_height
+                draw.text((0, y), line, fill=color, font=page_font)
 
     def close(self) -> None:
         self._device.clear()

@@ -99,7 +99,7 @@ def _render_interface(interface: InterfaceSnapshot, width: int, height: int) -> 
 
 
 def _fit_lines(lines: list[str], width: int, height: int) -> list[str]:
-    fitted = [line[:width].ljust(width) for line in lines[:height]]
+    fitted = [line.ljust(width) if len(line) < width else line for line in lines[:height]]
     while len(fitted) < height:
         fitted.append(" " * width)
     return fitted
