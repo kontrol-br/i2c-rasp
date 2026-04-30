@@ -26,6 +26,10 @@ lcd = [
   "RPLCD>=1.3",
   "smbus2>=0.5",
 ]
+oled = [
+  "luma.oled>=3.13",
+  "luma.core>=2.4",
+]
 
 [project.scripts]
 i2c-rasp = "i2c_rasp.cli:main"
