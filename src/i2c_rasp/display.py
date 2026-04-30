@@ -124,11 +124,9 @@ class SSD1306Sink(DisplaySink):
 def _scroll_text(text: str, width: int, frame: int) -> str:
     if len(text) <= width:
         return text
-    gap = "   "
-    loop = text + gap
-    start = frame % len(loop)
-    doubled = loop + loop
-    return doubled[start : start + width]
+    max_offset = len(text) - width
+    offset = _ping_pong_offset(frame, max_offset, step=1)
+    return text[offset : offset + width]
 
 
 def _draw_scrolling_text(draw, text: str, font, y: int, color: int, frame: int, device_width: int) -> None:
@@ -142,9 +140,19 @@ def _draw_scrolling_text(draw, text: str, font, y: int, color: int, frame: int, 
         draw.text((0, y), clean_text, fill=color, font=font)
         return
 
-    gap_pixels = 24
     speed_pixels_per_frame = 2
-    loop_width = text_width + gap_pixels
-    offset = (frame * speed_pixels_per_frame) % loop_width
+    max_offset = text_width - device_width
+    offset = _ping_pong_offset(frame, max_offset, step=speed_pixels_per_frame)
     draw.text((-offset, y), clean_text, fill=color, font=font)
-    draw.text((loop_width - offset, y), clean_text, fill=color, font=font)
+
+
+def _ping_pong_offset(frame: int, max_offset: int, step: int) -> int:
+    if max_offset <= 0:
+        return 0
+    path = list(range(0, max_offset + 1, step))
+    if path[-1] != max_offset:
+        path.append(max_offset)
+    if len(path) == 1:
+        return path[0]
+    cycle = path + path[-2:0:-1]
+    return cycle[frame % len(cycle)]
