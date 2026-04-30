@@ -33,10 +33,10 @@ rotate = 0
 
 ## Execucao
 
-Instale com suporte OLED:
+Instale normalmente (o suporte OLED SSD1306 ja vem nas dependencias padrao):
 
 ```bash
-pip install -e .[oled]
+pip install -e .
 ```
 
 Rodar normalmente (OLED):

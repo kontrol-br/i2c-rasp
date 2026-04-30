@@ -99,5 +99,9 @@ def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
     try:
         return SSD1306Sink(width, height, oled_config)
     except Exception as exc:
-        print(f"OLED indisponivel ({exc}); usando terminal.", flush=True)
+        print(
+            f"OLED indisponivel ({exc}); usando terminal. "
+            "Verifique se o pacote foi instalado/atualizado com: pip install -e .",
+            flush=True,
+        )
         return TerminalSink()

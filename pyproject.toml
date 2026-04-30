@@ -12,7 +12,10 @@ license = "MIT"
 authors = [
   { name = "i2c-rasp maintainers" }
 ]
-dependencies = []
+dependencies = [
+  "luma.oled>=3.13",
+  "luma.core>=2.4",
+]
 
 [project.optional-dependencies]
 dev = [
