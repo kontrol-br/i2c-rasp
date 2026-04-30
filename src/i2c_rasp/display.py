@@ -12,7 +12,7 @@ class OledConfig:
 
 
 class DisplaySink:
-    def show_page(self, lines: list[str]) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
         raise NotImplementedError
 
     def close(self) -> None:
@@ -23,10 +23,12 @@ class DisplaySink:
 
 
 class TerminalSink(DisplaySink):
-    def show_page(self, lines: list[str]) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
         width = max((len(line) for line in lines), default=0)
         border = "+" + "-" * width + "+"
         body = "\n".join(f"|{line.ljust(width)}|" for line in lines)
+        if flash:
+            body = f"\033[7m{body}\033[0m"
         print(f"{border}\n{body}\n{border}", flush=True)
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
@@ -47,11 +49,28 @@ class SSD1306Sink(DisplaySink):
         self._title_y = 0
         self._time_y = 14
         self._date_y = 52
+        self._page_font_size = 18
 
-    def show_page(self, lines: list[str]) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
+        from PIL import ImageFont
+
+        try:
+            page_font = ImageFont.truetype("DejaVuSans-Bold.ttf", self._page_font_size)
+        except OSError:
+            page_font = ImageFont.load_default()
+
+        visible_lines = [line for line in lines[: self._rows] if line.strip()]
+        if not visible_lines:
+            visible_lines = lines[: self._rows]
+        line_height = 16
+        start_y = max(0, (self._device.height - (line_height * len(visible_lines))) // 2)
+
         with self._canvas(self._device) as draw:
-            for row, raw_line in enumerate(lines[: self._rows]):
-                draw.text((0, row * 16), raw_line[: self._columns], fill=255)
+            if flash:
+                draw.rectangle((0, 0, self._device.width, self._device.height), outline=255, fill=255)
+            for row, raw_line in enumerate(visible_lines):
+                color = 0 if flash else 255
+                draw.text((0, start_y + row * line_height), raw_line[: self._columns], fill=color, font=page_font)
 
     def close(self) -> None:
         self._device.clear()
