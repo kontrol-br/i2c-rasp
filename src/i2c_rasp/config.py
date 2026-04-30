@@ -51,12 +51,28 @@ class InterfaceConfig:
 
 
 @dataclass(frozen=True)
+class AlertThresholdsConfig:
+    cpu_percent: float | None = None
+    memory_percent: float | None = None
+    temperature_celsius: float | None = None
+    storage_percent: float | None = None
+
+
+@dataclass(frozen=True)
+class BuzzerConfig:
+    enabled: bool = False
+    gpio_pin: int = 18
+
+
+@dataclass(frozen=True)
 class AppConfig:
     hosts: list[HostConfig] = field(default_factory=lambda: [HostConfig()])
     scrape: ScrapeConfig = field(default_factory=ScrapeConfig)
     display: DisplayConfig = field(default_factory=DisplayConfig)
     interfaces: InterfaceConfig = field(default_factory=InterfaceConfig)
     oled: OledConfig = field(default_factory=OledConfig)
+    alert_thresholds: AlertThresholdsConfig = field(default_factory=AlertThresholdsConfig)
+    buzzer: BuzzerConfig = field(default_factory=BuzzerConfig)
 
 
 def load_config(path: str | Path | None) -> AppConfig:
@@ -81,4 +97,6 @@ def load_config(path: str | Path | None) -> AppConfig:
         display=DisplayConfig(**data.get("display", {})),
         interfaces=InterfaceConfig(**data.get("interfaces", {})),
         oled=OledConfig(**data.get("oled", {})),
+        alert_thresholds=AlertThresholdsConfig(**data.get("alert_thresholds", {})),
+        buzzer=BuzzerConfig(**data.get("buzzer", {})),
     )
