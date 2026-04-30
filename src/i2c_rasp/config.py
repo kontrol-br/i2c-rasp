@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import tomllib
 from dataclasses import dataclass, field
+
+from i2c_rasp.display import OledConfig
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -54,6 +56,7 @@ class AppConfig:
     scrape: ScrapeConfig = field(default_factory=ScrapeConfig)
     display: DisplayConfig = field(default_factory=DisplayConfig)
     interfaces: InterfaceConfig = field(default_factory=InterfaceConfig)
+    oled: OledConfig = field(default_factory=OledConfig)
 
 
 def load_config(path: str | Path | None) -> AppConfig:
@@ -77,4 +80,5 @@ def load_config(path: str | Path | None) -> AppConfig:
         scrape=ScrapeConfig(**data.get("scrape", {})),
         display=DisplayConfig(**data.get("display", {})),
         interfaces=InterfaceConfig(**data.get("interfaces", {})),
+        oled=OledConfig(**data.get("oled", {})),
     )

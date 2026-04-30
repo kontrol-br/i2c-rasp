@@ -4,7 +4,8 @@ import argparse
 from time import sleep
 
 from i2c_rasp.config import HostConfig, load_config
-from i2c_rasp.render import render_pages, render_terminal_page
+from i2c_rasp.display import SSD1306Sink, TerminalSink
+from i2c_rasp.render import render_pages
 from i2c_rasp.scrape import MetricsScraper, ScrapeError
 from i2c_rasp.snapshot import SnapshotBuilder
 
@@ -16,6 +17,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=9100, help="Porta do exporter para --host.")
     parser.add_argument("--url", help="URL completa para teste rapido.")
     parser.add_argument("--once", action="store_true", help="Renderiza uma rodada e encerra.")
+    parser.add_argument("--terminal", action="store_true", help="Forca saida no terminal em vez do OLED.")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -25,6 +27,8 @@ def main() -> None:
         for host in hosts
     }
     builders = {host.name: SnapshotBuilder(config.interfaces.include) for host in hosts}
+
+    sink = _build_sink(config.display.width, config.display.height, config.oled, args.terminal)
 
     # Duas coletas por host permitem calcular CPU e throughput de rede na primeira tela.
     for host in hosts:
@@ -47,12 +51,14 @@ def main() -> None:
                 ]
 
             for page in pages:
-                print(render_terminal_page(page), flush=True)
+                sink.show_page(page)
                 if not args.once:
                     sleep(config.display.page_seconds)
         if args.once:
             break
         sleep(config.display.refresh_seconds)
+
+    sink.close()
 
 
 def _resolve_hosts(
@@ -85,3 +91,13 @@ def _error_page(name: str, message: str, width: int, height: int) -> list[str]:
 
 if __name__ == "__main__":
     main()
+
+
+def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
+    if force_terminal or not oled_config.enabled:
+        return TerminalSink()
+    try:
+        return SSD1306Sink(width, height, oled_config)
+    except Exception as exc:
+        print(f"OLED indisponivel ({exc}); usando terminal.", flush=True)
+        return TerminalSink()

@@ -20,3 +20,9 @@ refresh_seconds = 2.0
 [interfaces]
 # Se vazio, usa as interfaces anunciadas por node_pfsense_interface_info.
 include = ["wan", "opt1", "lan"]
+
+[oled]
+enabled = true
+i2c_port = 1
+i2c_address = 60 # 0x3C
+rotate = 0
