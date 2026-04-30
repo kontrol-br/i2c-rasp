@@ -12,7 +12,7 @@ class OledConfig:
 
 
 class DisplaySink:
-    def show_page(self, lines: list[str]) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
         raise NotImplementedError
 
     def close(self) -> None:
@@ -23,10 +23,12 @@ class DisplaySink:
 
 
 class TerminalSink(DisplaySink):
-    def show_page(self, lines: list[str]) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
         width = max((len(line) for line in lines), default=0)
         border = "+" + "-" * width + "+"
         body = "\n".join(f"|{line.ljust(width)}|" for line in lines)
+        if flash:
+            body = f"\033[7m{body}\033[0m"
         print(f"{border}\n{body}\n{border}", flush=True)
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
@@ -48,10 +50,13 @@ class SSD1306Sink(DisplaySink):
         self._time_y = 14
         self._date_y = 52
 
-    def show_page(self, lines: list[str]) -> None:
+    def show_page(self, lines: list[str], *, flash: bool = False) -> None:
         with self._canvas(self._device) as draw:
+            if flash:
+                draw.rectangle((0, 0, self._device.width, self._device.height), outline=255, fill=255)
             for row, raw_line in enumerate(lines[: self._rows]):
-                draw.text((0, row * 16), raw_line[: self._columns], fill=255)
+                color = 0 if flash else 255
+                draw.text((0, row * 16), raw_line[: self._columns], fill=color)
 
     def close(self) -> None:
         self._device.clear()

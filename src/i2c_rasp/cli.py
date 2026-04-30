@@ -5,6 +5,8 @@ from time import sleep
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from i2c_rasp.alerting import evaluate_page_alerts
+from i2c_rasp.buzzer import build_buzzer
 from i2c_rasp.config import HostConfig, load_config
 from i2c_rasp.display import SSD1306Sink, TerminalSink
 from i2c_rasp.render import render_pages
@@ -31,6 +33,7 @@ def main() -> None:
     builders = {host.name: SnapshotBuilder(config.interfaces.include) for host in hosts}
 
     sink = _build_sink(config.display.width, config.display.height, config.oled, args.terminal)
+    buzzer = build_buzzer(config.buzzer)
 
     # Duas coletas por host permitem calcular CPU e throughput de rede na primeira tela.
     for host in hosts:
@@ -42,6 +45,7 @@ def main() -> None:
             try:
                 snapshot = builders[host.name].build(host.name, scrapers[host.name].scrape())
                 pages = render_pages(snapshot, config.display.width, config.display.height)
+                alerts = evaluate_page_alerts(snapshot, config.alert_thresholds)
             except ScrapeError as exc:
                 pages = [
                     _error_page(
@@ -51,9 +55,15 @@ def main() -> None:
                         config.display.height,
                     )
                 ]
+                alerts = None
 
-            for page in pages:
-                sink.show_page(page)
+            for index, page in enumerate(pages):
+                flash = bool(alerts and ((index == 0 and alerts.summary) or (index == len(pages) - 1 and alerts.storage)))
+                if flash:
+                    buzzer.on()
+                sink.show_page(page, flash=flash)
+                if flash:
+                    buzzer.off()
                 if not args.once:
                     sleep(config.display.page_seconds)
 
@@ -66,6 +76,7 @@ def main() -> None:
         sleep(config.display.refresh_seconds)
 
     sink.close()
+    buzzer.close()
 
 
 def _resolve_hosts(
