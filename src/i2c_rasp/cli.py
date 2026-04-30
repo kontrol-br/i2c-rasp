@@ -57,8 +57,8 @@ def main() -> None:
                 if not args.once:
                     sleep(config.display.page_seconds)
 
-        clock_page = _clock_page(config.display.width, config.display.height)
-        sink.show_page(clock_page)
+        title, time_text, date_text = _clock_content()
+        sink.show_clock(title, time_text, date_text)
         if not args.once:
             sleep(config.display.page_seconds)
         if args.once:
@@ -96,16 +96,12 @@ def _error_page(name: str, message: str, width: int, height: int) -> list[str]:
     return fitted
 
 
-def _clock_page(width: int, height: int) -> list[str]:
+def _clock_content() -> tuple[str, str, str]:
     now = datetime.now(ZoneInfo("America/Sao_Paulo"))
     timezone_label = "SAO PAULO, BRASIL"
-    time_line = now.strftime("%H:%M:%S").center(width)
-    date_line = now.strftime("%d/%m/%Y").center(width)
-
-    lines = [timezone_label[:width].ljust(width), time_line[:width].ljust(width), date_line[:width].ljust(width)]
-    while len(lines) < height:
-        lines.append(" " * width)
-    return lines
+    time_line = now.strftime("%H:%M")
+    date_line = now.strftime("%d/%m/%Y")
+    return timezone_label, time_line, date_line
 
 
 if __name__ == "__main__":
