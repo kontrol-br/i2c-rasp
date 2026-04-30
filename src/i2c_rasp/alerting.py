@@ -8,27 +8,23 @@ from i2c_rasp.snapshot import DeviceSnapshot
 
 @dataclass(frozen=True)
 class PageAlerts:
-    summary: bool
+    cpu: bool
+    memory: bool
     storage: bool
+    temperature: bool
 
 
 def evaluate_page_alerts(snapshot: DeviceSnapshot, thresholds: AlertThresholdsConfig) -> PageAlerts:
     return PageAlerts(
-        summary=_summary_alert(snapshot, thresholds),
+        cpu=_above(snapshot.cpu_percent, thresholds.cpu_percent),
+        memory=_above(snapshot.memory_percent, thresholds.memory_percent),
         storage=_storage_alert(snapshot, thresholds),
-    )
-
-
-def _summary_alert(snapshot: DeviceSnapshot, thresholds: AlertThresholdsConfig) -> bool:
-    return _above(snapshot.cpu_percent, thresholds.cpu_percent) or _above(
-        snapshot.memory_percent, thresholds.memory_percent
+        temperature=_above(snapshot.temperature_celsius, thresholds.temperature_celsius),
     )
 
 
 def _storage_alert(snapshot: DeviceSnapshot, thresholds: AlertThresholdsConfig) -> bool:
-    return _above(snapshot.temperature_celsius, thresholds.temperature_celsius) or _above(
-        snapshot.root_disk_percent, thresholds.storage_percent
-    )
+    return _above(snapshot.root_disk_percent, thresholds.storage_percent)
 
 
 def _above(value: float | None, threshold: float | None) -> bool:

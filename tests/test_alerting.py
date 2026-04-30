@@ -3,7 +3,7 @@ from i2c_rasp.config import AlertThresholdsConfig
 from i2c_rasp.snapshot import DeviceSnapshot
 
 
-def test_alerts_flag_summary_and_storage_pages() -> None:
+def test_alerts_flag_cpu_memory_storage_temperature_pages() -> None:
     snapshot = DeviceSnapshot(
         name="lab",
         hostname="lab",
@@ -25,5 +25,7 @@ def test_alerts_flag_summary_and_storage_pages() -> None:
 
     alerts = evaluate_page_alerts(snapshot, thresholds)
 
-    assert alerts.summary is True
-    assert alerts.storage is True
+    assert alerts.cpu is True
+    assert alerts.memory is False
+    assert alerts.storage is False
+    assert alerts.temperature is True

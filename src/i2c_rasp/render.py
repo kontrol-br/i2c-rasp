@@ -1,39 +1,76 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from i2c_rasp.snapshot import DeviceSnapshot, InterfaceSnapshot
 
 
-def render_pages(snapshot: DeviceSnapshot, width: int, height: int) -> list[list[str]]:
+@dataclass(frozen=True)
+class RenderedPage:
+    kind: str
+    lines: list[str]
+
+
+def render_pages(snapshot: DeviceSnapshot, width: int, height: int) -> list[RenderedPage]:
     pages = [
-        _fit_lines(
-            [
-                snapshot.hostname,
-                f"{snapshot.os_name} {snapshot.name}",
-                f"CPU {_fmt_percent(snapshot.cpu_percent)} LOAD {_fmt_number(snapshot.load1)}",
-                (
-                    f"MEM {_fmt_percent(snapshot.memory_percent)} "
-                    f"SWP {_fmt_percent(snapshot.swap_percent)}"
-                ),
-            ],
-            width,
-            height,
-        )
+        RenderedPage(
+            kind="cpu",
+            lines=_fit_lines(
+                [
+                    "CPU",
+                    f"HOST {snapshot.hostname}",
+                    f"USO {_fmt_percent(snapshot.cpu_percent)}",
+                    f"LOAD {_fmt_number(snapshot.load1)}",
+                ],
+                width,
+                height,
+            ),
+        ),
+        RenderedPage(
+            kind="memory",
+            lines=_fit_lines(
+                [
+                    "MEMORIA",
+                    f"HOST {snapshot.hostname}",
+                    f"RAM {_fmt_percent(snapshot.memory_percent)}",
+                    f"SWAP {_fmt_percent(snapshot.swap_percent)}",
+                ],
+                width,
+                height,
+            ),
+        ),
     ]
 
     for interface in snapshot.interfaces:
-        pages.append(_render_interface(interface, width, height))
+        pages.append(RenderedPage(kind="interface", lines=_render_interface(interface, width, height)))
 
-    pages.append(
-        _fit_lines(
-            [
-                "Storage",
-                f"ROOT {_fmt_percent(snapshot.root_disk_percent)}",
-                f"Temp {_fmt_temp(snapshot.temperature_celsius)}",
-                f"Load {_fmt_number(snapshot.load1)}",
-            ],
-            width,
-            height,
-        )
+    pages.extend(
+        [
+            RenderedPage(
+                kind="storage",
+                lines=_fit_lines(
+                    [
+                        "STORAGE",
+                        f"HOST {snapshot.hostname}",
+                        f"ROOT {_fmt_percent(snapshot.root_disk_percent)}",
+                    ],
+                    width,
+                    height,
+                ),
+            ),
+            RenderedPage(
+                kind="temperature",
+                lines=_fit_lines(
+                    [
+                        "TEMPERATURA",
+                        f"HOST {snapshot.hostname}",
+                        f"CPU {_fmt_temp(snapshot.temperature_celsius)}",
+                    ],
+                    width,
+                    height,
+                ),
+            ),
+        ]
     )
     return pages
 

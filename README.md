@@ -42,7 +42,8 @@ gpio_pin = 18
 ```
 
 Quando um limite e atingido, a pagina correspondente entra em modo flash (inverte fundo/texto).
-CPU/MEM disparam alerta na primeira pagina; TEMP/STORAGE na pagina de storage.
+Cada metrica principal fica em sua propria tela: CPU, Memoria, Interfaces, Storage e Temperatura.
+CPU, Memoria, Storage e Temperatura disparam alerta individualmente por tela.
 Se o buzzer estiver habilitado, ele toca enquanto a pagina em alerta estiver sendo exibida.
 
 ## Execucao

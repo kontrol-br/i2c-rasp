@@ -60,12 +60,20 @@ def main() -> None:
                 ]
                 alerts = None
 
-            for index, page in enumerate(pages):
-                flash = bool(alerts and ((index == 0 and alerts.summary) or (index == len(pages) - 1 and alerts.storage)))
+            for page in pages:
+                flash = bool(
+                    alerts
+                    and (
+                        (page.kind == "cpu" and alerts.cpu)
+                        or (page.kind == "memory" and alerts.memory)
+                        or (page.kind == "storage" and alerts.storage)
+                        or (page.kind == "temperature" and alerts.temperature)
+                    )
+                )
                 _show_page_with_alert(
                     sink=sink,
                     buzzer=buzzer,
-                    page=page,
+                    page=page.lines,
                     alert=flash,
                     page_seconds=config.display.page_seconds,
                     once=args.once,
