@@ -5,11 +5,15 @@ from time import sleep
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from i2c_rasp.alerting import evaluate_page_alerts
+from i2c_rasp.buzzer import build_buzzer
 from i2c_rasp.config import HostConfig, load_config
 from i2c_rasp.display import SSD1306Sink, TerminalSink
 from i2c_rasp.render import render_pages
 from i2c_rasp.scrape import MetricsScraper, ScrapeError
 from i2c_rasp.snapshot import SnapshotBuilder
+
+FRAME_STEP_SECONDS = 0.25
 
 
 def main() -> None:
@@ -31,6 +35,7 @@ def main() -> None:
     builders = {host.name: SnapshotBuilder(config.interfaces.include) for host in hosts}
 
     sink = _build_sink(config.display.width, config.display.height, config.oled, args.terminal)
+    buzzer = build_buzzer(config.buzzer)
 
     # Duas coletas por host permitem calcular CPU e throughput de rede na primeira tela.
     for host in hosts:
@@ -42,6 +47,7 @@ def main() -> None:
             try:
                 snapshot = builders[host.name].build(host.name, scrapers[host.name].scrape())
                 pages = render_pages(snapshot, config.display.width, config.display.height)
+                alerts = evaluate_page_alerts(snapshot, config.alert_thresholds)
             except ScrapeError as exc:
                 pages = [
                     _error_page(
@@ -51,11 +57,26 @@ def main() -> None:
                         config.display.height,
                     )
                 ]
+                alerts = None
 
             for page in pages:
-                sink.show_page(page)
-                if not args.once:
-                    sleep(config.display.page_seconds)
+                flash = bool(
+                    alerts
+                    and (
+                        (page.kind == "cpu" and alerts.cpu)
+                        or (page.kind == "memory" and alerts.memory)
+                        or (page.kind == "storage" and alerts.storage)
+                        or (page.kind == "temperature" and alerts.temperature)
+                    )
+                )
+                _show_page_with_alert(
+                    sink=sink,
+                    buzzer=buzzer,
+                    page=page.lines,
+                    alert=flash,
+                    page_seconds=config.display.page_seconds,
+                    once=args.once,
+                )
 
         title, time_text, date_text = _clock_content()
         sink.show_clock(title, time_text, date_text)
@@ -66,6 +87,7 @@ def main() -> None:
         sleep(config.display.refresh_seconds)
 
     sink.close()
+    buzzer.close()
 
 
 def _resolve_hosts(
@@ -102,6 +124,47 @@ def _clock_content() -> tuple[str, str, str]:
     time_line = now.strftime("%H:%M")
     date_line = now.strftime("%d/%m/%Y")
     return timezone_label, time_line, date_line
+
+
+def _show_page_with_alert(
+    sink,
+    buzzer,
+    page: list[str],
+    alert: bool,
+    page_seconds: float,
+    once: bool,
+) -> None:
+    if not alert:
+        if once:
+            sink.show_page(page, flash=False, frame=0)
+            return
+        _animate_page(sink, page, page_seconds, flash=False, flash_blink=False)
+        return
+
+    total_seconds = page_seconds * 2.0
+    buzzer.on()
+    try:
+        if once:
+            sink.show_page(page, flash=True, frame=0)
+            return
+        _animate_page(sink, page, total_seconds, flash=True, flash_blink=True)
+    finally:
+        buzzer.off()
+
+
+def _animate_page(sink, page: list[str], total_seconds: float, flash: bool, flash_blink: bool) -> None:
+    elapsed = 0.0
+    frame = 0
+    while elapsed < total_seconds:
+        if flash_blink:
+            flash_on = frame % 2 == 0
+        else:
+            flash_on = flash
+        sink.show_page(page, flash=flash_on, frame=frame)
+        step = min(FRAME_STEP_SECONDS, total_seconds - elapsed)
+        sleep(step)
+        elapsed += step
+        frame += 1
 
 
 if __name__ == "__main__":
