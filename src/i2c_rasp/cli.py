@@ -189,17 +189,9 @@ def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
 
 
 def _show_rainbow_cycle(sink, page_seconds: float, once: bool) -> None:
-    if once:
-        sink.show_rainbow(frame=0)
-        return
-    elapsed = 0.0
-    frame = 0
-    while elapsed < page_seconds:
-        sink.show_rainbow(frame=frame)
-        step = min(FRAME_STEP_SECONDS, page_seconds - elapsed)
-        sleep(step)
-        elapsed += step
-        frame += 1
+    sink.show_rainbow(frame=0)
+    if not once:
+        sleep(page_seconds)
 
 
 if __name__ == "__main__":
