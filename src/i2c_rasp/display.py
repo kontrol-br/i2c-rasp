@@ -20,6 +20,12 @@ class OledConfig:
     spi_invert: bool = False
 
 
+
+
+def _draw_decorative_border(draw, width: int, height: int, color: str = "#001f3f") -> None:
+    draw.rectangle((0, 0, width - 1, height - 1), outline=color, width=1)
+
+
 class DisplaySink:
     def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
         raise NotImplementedError
@@ -114,6 +120,7 @@ class ST7735Sink(DisplaySink):
         with self._canvas(self._device) as draw:
             # Mantem fundo preto em todos os estados.
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
                 color = "white" if flash else colors[row % len(colors)]
@@ -133,6 +140,7 @@ class ST7735Sink(DisplaySink):
 
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             draw.text((0, 0), title, fill="#ffff00", font=title_font)
             time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
             time_width = time_bbox[2] - time_bbox[0]
@@ -148,6 +156,7 @@ class ST7735Sink(DisplaySink):
         y_base = self._device.height
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             for idx, color in enumerate(colors):
                 x0 = x_start + idx * stripe_width
                 x1 = x0 + stripe_width
