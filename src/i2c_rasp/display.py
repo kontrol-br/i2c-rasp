@@ -148,6 +148,28 @@ class ST7735Sink(DisplaySink):
             draw.text((time_x, 16), time_text, fill="#1e6bff", font=time_font)
             draw.text((2, self._device.height - 12), date_text, fill="white", font=date_font)
 
+    def show_clock(self, title: str, time_text: str, date_text: str) -> None:
+        from PIL import ImageFont
+
+        try:
+            title_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 12)
+            time_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 34)
+            date_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 11)
+        except OSError:
+            title_font = ImageFont.load_default()
+            time_font = ImageFont.load_default()
+            date_font = ImageFont.load_default()
+
+        with self._canvas(self._device) as draw:
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
+            draw.text((0, 0), title, fill="#ffff00", font=title_font)
+            time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
+            time_width = time_bbox[2] - time_bbox[0]
+            time_x = max(0, (self._device.width - time_width) // 2)
+            draw.text((time_x, 16), time_text, fill="#00ff00", font=time_font)
+            draw.text((0, self._device.height - 12), date_text, fill="white", font=date_font)
+
     def show_rainbow(self, frame: int = 0) -> None:
         colors = ["#ff2b5f", "#f7b42c", "#7ac143", "#3b82d6"]
         stripe_width = 34
@@ -157,6 +179,7 @@ class ST7735Sink(DisplaySink):
         y_top = 0
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             for idx, color in enumerate(colors):
                 x0 = x_start + idx * stripe_width
                 x1 = x0 + stripe_width
