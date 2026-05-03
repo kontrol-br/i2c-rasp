@@ -124,7 +124,7 @@ class ST7735Sink(DisplaySink):
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
                 color = "white" if flash else colors[row % len(colors)]
-                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width, x_offset=2)
+                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width, x_offset=3)
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
         from PIL import ImageFont
@@ -141,12 +141,18 @@ class ST7735Sink(DisplaySink):
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
             _draw_decorative_border(draw, self._device.width, self._device.height)
-            draw.text((2, 0), title, fill="#ffff00", font=title_font)
+            title_bbox = draw.textbbox((0, 0), title, font=title_font)
+            title_width = title_bbox[2] - title_bbox[0]
+            title_x = max(0, (self._device.width - title_width) // 2)
+            draw.text((title_x, 0), title, fill="#ffff00", font=title_font)
             time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
             time_width = time_bbox[2] - time_bbox[0]
             time_x = max(0, (self._device.width - time_width) // 2)
             draw.text((time_x, 16), time_text, fill="#1500d1", font=time_font)
-            draw.text((2, self._device.height - 12), date_text, fill="white", font=date_font)
+            date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
+            date_width = date_bbox[2] - date_bbox[0]
+            date_x = max(0, (self._device.width - date_width) // 2)
+            draw.text((date_x, self._device.height - 12), date_text, fill="white", font=date_font)
 
     def show_rainbow(self, frame: int = 0) -> None:
         colors = ["#ff2b5f", "#f7b42c", "#7ac143", "#3b82d6"]
