@@ -7,7 +7,7 @@ name = "i2c-rasp"
 version = "0.1.0"
 description = "Monitor LCD I2C para equipamentos pfSense/Kontrol expostos via Prometheus node exporter."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 license = "MIT"
 authors = [
   { name = "i2c-rasp maintainers" }
@@ -39,7 +39,7 @@ packages = ["src/i2c_rasp"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
