@@ -62,19 +62,24 @@ class ST7735Sink(DisplaySink):
         from PIL import ImageFont
 
         try:
-            font = ImageFont.truetype("DejaVuSans-Bold.ttf", 14)
+            font = ImageFont.truetype("DejaVuSans-Bold.ttf", 12)
         except OSError:
             font = ImageFont.load_default()
 
         colors = ["red", "orange", "yellow", "green", "cyan", "blue", "magenta", "white"]
         visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[: self._rows]
-        line_height = 18
+        bbox = font.getbbox("Ag")
+        text_height = max(10, bbox[3] - bbox[1])
+        top_margin = 4
+        bottom_margin = 4
+        available_height = max(1, self._device.height - top_margin - bottom_margin)
+        line_height = max(text_height + 2, available_height // max(1, len(visible_lines)))
         with self._canvas(self._device) as draw:
-            if flash:
-                draw.rectangle((0, 0, self._device.width, self._device.height), fill="white")
+            # Mantem fundo preto em todos os estados.
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
             for row, line in enumerate(visible_lines):
-                y = row * line_height
-                color = "black" if flash else colors[row % len(colors)]
+                y = top_margin + row * line_height
+                color = "white" if flash else colors[row % len(colors)]
                 _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width)
 
     def show_rainbow(self, frame: int = 0) -> None:
