@@ -22,8 +22,8 @@ class OledConfig:
 
 
 
-def _draw_decorative_border(draw, width: int, height: int, color: str = "#001f3f") -> None:
-    draw.rectangle((0, 0, width - 1, height - 1), outline=color, width=1)
+def _draw_decorative_border(draw, width: int, height: int, color: str = "#0033cc") -> None:
+    draw.rectangle((0, 0, width - 1, height - 1), outline=color, width=2)
 
 
 class DisplaySink:
@@ -149,19 +149,20 @@ class ST7735Sink(DisplaySink):
             draw.text((0, self._device.height - 12), date_text, fill="white", font=date_font)
 
     def show_rainbow(self, frame: int = 0) -> None:
-        colors = ["#ff004d", "#ff7f00", "#ffee00", "#00e436", "#29adff", "#7e57c2"]
-        stripe_width = 9
-        stripe_height = 28
-        x_start = self._device.width - (stripe_width * len(colors))
-        y_base = self._device.height
+        colors = ["#ff2b5f", "#f7b42c", "#7ac143", "#3b82d6"]
+        stripe_width = 34
+        slant = 30
+        x_start = -16
+        y_bottom = self._device.height
+        y_top = 0
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
             _draw_decorative_border(draw, self._device.width, self._device.height)
             for idx, color in enumerate(colors):
                 x0 = x_start + idx * stripe_width
                 x1 = x0 + stripe_width
-                y_top = y_base - stripe_height + idx
-                draw.polygon([(x0, y_base), (x1, y_base), (x1 - 6, y_top), (x0 - 6, y_top)], fill=color)
+                draw.polygon([(x0, y_bottom), (x1, y_bottom), (x1 + slant, y_top), (x0 + slant, y_top)], fill=color)
+            _draw_decorative_border(draw, self._device.width, self._device.height)
 
     def close(self) -> None:
         self._device.clear()
