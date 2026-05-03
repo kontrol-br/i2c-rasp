@@ -20,6 +20,12 @@ class OledConfig:
     spi_invert: bool = False
 
 
+
+
+def _draw_decorative_border(draw, width: int, height: int, color: str = "#001f3f") -> None:
+    draw.rectangle((0, 0, width - 1, height - 1), outline=color, width=1)
+
+
 class DisplaySink:
     def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
         raise NotImplementedError
@@ -103,7 +109,7 @@ class ST7735Sink(DisplaySink):
         except OSError:
             font = ImageFont.load_default()
 
-        colors = ["red", "orange", "yellow", "green", "cyan", "blue", "magenta", "white"]
+        colors = ["red", "orange", "yellow", "#00ff00", "cyan", "blue", "magenta", "#00ff00"]
         visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[: self._rows]
         bbox = font.getbbox("Ag")
         text_height = max(10, bbox[3] - bbox[1])
@@ -114,21 +120,48 @@ class ST7735Sink(DisplaySink):
         with self._canvas(self._device) as draw:
             # Mantem fundo preto em todos os estados.
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
                 color = "white" if flash else colors[row % len(colors)]
                 _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width)
 
-    def show_rainbow(self, frame: int = 0) -> None:
-        stripe_width = 24
-        colors = ["red", "orange", "yellow", "green", "cyan", "blue"]
-        shift = frame % stripe_width
+    def show_clock(self, title: str, time_text: str, date_text: str) -> None:
+        from PIL import ImageFont
+
+        try:
+            title_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 12)
+            time_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 34)
+            date_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 11)
+        except OSError:
+            title_font = ImageFont.load_default()
+            time_font = ImageFont.load_default()
+            date_font = ImageFont.load_default()
+
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
+            draw.text((0, 0), title, fill="#ffff00", font=title_font)
+            time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
+            time_width = time_bbox[2] - time_bbox[0]
+            time_x = max(0, (self._device.width - time_width) // 2)
+            draw.text((time_x, 16), time_text, fill="#00ff00", font=time_font)
+            draw.text((0, self._device.height - 12), date_text, fill="white", font=date_font)
+
+    def show_rainbow(self, frame: int = 0) -> None:
+        colors = ["#ff004d", "#ff7f00", "#ffee00", "#00e436", "#29adff", "#7e57c2"]
+        stripe_width = 9
+        stripe_height = 28
+        x_start = self._device.width - (stripe_width * len(colors))
+        y_base = self._device.height
+        with self._canvas(self._device) as draw:
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             for idx, color in enumerate(colors):
-                x0 = -120 + idx * stripe_width + shift
+                x0 = x_start + idx * stripe_width
                 x1 = x0 + stripe_width
-                draw.polygon([(x0, self._device.height), (x1, self._device.height), (x1 + 80, 0), (x0 + 80, 0)], fill=color)
+                y_top = y_base - stripe_height + idx
+                draw.polygon([(x0, y_base), (x1, y_base), (x1 - 6, y_top), (x0 - 6, y_top)], fill=color)
 
     def close(self) -> None:
         self._device.clear()
