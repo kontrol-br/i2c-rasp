@@ -169,10 +169,6 @@ def _animate_page(sink, page: list[str], total_seconds: float, flash: bool, flas
         frame += 1
 
 
-if __name__ == "__main__":
-    main()
-
-
 def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
     if force_terminal or not oled_config.enabled:
         return TerminalSink()
@@ -201,3 +197,7 @@ def _show_rainbow_cycle(sink, page_seconds: float, once: bool) -> None:
         sleep(step)
         elapsed += step
         frame += 1
+
+
+if __name__ == "__main__":
+    main()
