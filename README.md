@@ -132,6 +132,26 @@ Forcar modo terminal (debug):
 python -m i2c_rasp.cli --config config.example.toml --terminal --once
 ```
 
+Se ocorrer `ModuleNotFoundError: No module named 'i2c_rasp'`, reinstale no mesmo interpretador que executa o comando:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m i2c_rasp.cli --config config.example.toml --once
+```
+
+Dica rapida de diagnostico:
+
+```bash
+which python3
+python3 -m pip show i2c-rasp
+```
+
+- Se `pip show` nao encontrar o pacote, ele nao foi instalado nesse Python.
+- Sempre use `python -m pip ...` com o mesmo `python` usado para executar o app.
+
 ---
 
 ## Troubleshooting (detectar display SPI ST7735)
@@ -188,7 +208,7 @@ Resultado esperado:
 ### 5) Confirmar dependencias Python do display
 
 ```bash
-python -m pip show luma-core luma-oled
+python -m pip show luma-core luma-oled luma-lcd
 ```
 
 Se estiver em ambiente virtual, ative antes:
