@@ -17,6 +17,7 @@ class OledConfig:
     spi_h_offset: int = 1
     spi_v_offset: int = 26
     spi_bgr: bool = True
+    spi_invert: bool = False
 
 
 class DisplaySink:
@@ -65,6 +66,7 @@ class ST7735Sink(DisplaySink):
             h_offset=config.spi_h_offset,
             v_offset=config.spi_v_offset,
             bgr=config.spi_bgr,
+            invert=config.spi_invert,
         )
         self._columns = width
         self._rows = height

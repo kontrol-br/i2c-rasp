@@ -85,6 +85,7 @@ spi_rst_pin = 25
 spi_h_offset = 1
 spi_v_offset = 26
 spi_bgr = true
+spi_invert = false
 
 [alert_thresholds]
 cpu_percent = 85
