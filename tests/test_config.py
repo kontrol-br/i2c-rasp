@@ -39,3 +39,23 @@ gpio_pin = 23
     assert config.alert_thresholds.temperature_celsius == 70
     assert config.buzzer.enabled is True
     assert config.buzzer.gpio_pin == 23
+
+
+def test_load_config_supports_st7735_display_model(tmp_path) -> None:
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        """
+[oled]
+model = "st7735"
+spi_port = 0
+spi_device = 0
+spi_dc_pin = 24
+spi_rst_pin = 25
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_file)
+
+    assert config.oled.model == "st7735"
+    assert config.oled.spi_dc_pin == 24
