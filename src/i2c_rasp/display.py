@@ -118,12 +118,14 @@ class ST7735Sink(DisplaySink):
         available_height = max(1, self._device.height - top_margin - bottom_margin)
         line_height = max(text_height + 2, available_height // max(1, len(visible_lines)))
         with self._canvas(self._device) as draw:
-            # Mantem fundo preto em todos os estados.
-            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
-            _draw_decorative_border(draw, self._device.width, self._device.height)
+            # No alerta, inverte o fundo inteiro para criar efeito de pisca visivel.
+            background = "white" if flash else "black"
+            border_color = "black" if flash else "#0033cc"
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill=background)
+            _draw_decorative_border(draw, self._device.width, self._device.height, border_color)
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
-                color = "white" if flash else colors[row % len(colors)]
+                color = "black" if flash else colors[row % len(colors)]
                 _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width, x_offset=3)
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
