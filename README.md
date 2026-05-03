@@ -25,15 +25,17 @@ Configuracao relacionada:
 
 ## 2) Perfil ST7735 colorido (SPI, 80x160)
 
-Ligacao recomendada (SPI0 CE0):
-- **Pino 1**: 3V3 (VCC)
-- **Pino 6**: GND
-- **Pino 23**: SCLK / GPIO11
-- **Pino 19**: MOSI / GPIO10
-- **Pino 24**: CE0 / GPIO8 (CS)
-- **Pino 18**: GPIO24 (DC/A0)
-- **Pino 22**: GPIO25 (RST/RES)
-- **Backlight (BL/LED)**: 3V3 (ou via controle externo)
+Pinagem tipica do modulo ST7735: **GND, VCC, SCL, SDA, RES, DC, CS, BLK**.
+
+Ligacao recomendada no Raspberry Pi Zero 2 W (SPI0 CE0):
+- **GND (display)** -> **Pino 6 (GND)**
+- **VCC (display)** -> **Pino 1 (3V3)**
+- **SCL (display)** -> **Pino 23 (GPIO11 / SCLK)**
+- **SDA (display)** -> **Pino 19 (GPIO10 / MOSI)**
+- **RES (display)** -> **Pino 22 (GPIO25)**
+- **DC (display)** -> **Pino 18 (GPIO24)**
+- **CS (display)** -> **Pino 24 (GPIO8 / CE0)**
+- **BLK (display)** -> **Pino 1 (3V3)** (ou em pino PWM/transistor para controle de brilho)
 
 Configuracao relacionada:
 - `oled.model = "st7735"`
