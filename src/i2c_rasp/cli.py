@@ -9,7 +9,7 @@ from i2c_rasp.alerting import evaluate_page_alerts
 from i2c_rasp.buzzer import build_buzzer
 from i2c_rasp.config import HostConfig, load_config
 from i2c_rasp.display import SSD1306Sink, ST7735Sink, TerminalSink
-from i2c_rasp.render import render_pages
+from i2c_rasp.render import RenderedPage, render_pages
 from i2c_rasp.scrape import MetricsScraper, ScrapeError
 from i2c_rasp.snapshot import SnapshotBuilder
 
@@ -50,11 +50,14 @@ def main() -> None:
                 alerts = evaluate_page_alerts(snapshot, config.alert_thresholds)
             except ScrapeError as exc:
                 pages = [
-                    _error_page(
-                        host.name,
-                        str(exc),
-                        config.display.width,
-                        config.display.height,
+                    RenderedPage(
+                        kind="error",
+                        lines=_error_page(
+                            host.name,
+                            str(exc),
+                            config.display.width,
+                            config.display.height,
+                        ),
                     )
                 ]
                 alerts = None
@@ -169,10 +172,6 @@ def _animate_page(sink, page: list[str], total_seconds: float, flash: bool, flas
         frame += 1
 
 
-if __name__ == "__main__":
-    main()
-
-
 def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
     if force_terminal or not oled_config.enabled:
         return TerminalSink()
@@ -201,3 +200,7 @@ def _show_rainbow_cycle(sink, page_seconds: float, once: bool) -> None:
         sleep(step)
         elapsed += step
         frame += 1
+
+
+if __name__ == "__main__":
+    main()
