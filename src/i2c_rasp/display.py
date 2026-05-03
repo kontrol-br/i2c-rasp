@@ -6,9 +6,14 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class OledConfig:
     enabled: bool = True
+    model: str = "ssd1306"
     i2c_port: int = 1
     i2c_address: int = 0x3C
     rotate: int = 0
+    spi_port: int = 0
+    spi_device: int = 0
+    spi_dc_pin: int = 24
+    spi_rst_pin: int = 25
 
 
 class DisplaySink:
@@ -20,6 +25,9 @@ class DisplaySink:
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
         self.show_page([title, time_text, date_text])
+
+    def show_rainbow(self, frame: int = 0) -> None:
+        return
 
 
 class TerminalSink(DisplaySink):
@@ -34,6 +42,52 @@ class TerminalSink(DisplaySink):
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
         self.show_page([f"\033[33m{title}\033[0m", time_text, date_text])
+
+
+class ST7735Sink(DisplaySink):
+    def __init__(self, width: int, height: int, config: OledConfig) -> None:
+        from luma.core.interface.serial import spi
+        from luma.core.render import canvas
+        from luma.lcd.device import st7735
+
+        self._canvas = canvas
+        serial = spi(port=config.spi_port, device=config.spi_device, gpio_DC=config.spi_dc_pin, gpio_RST=config.spi_rst_pin)
+        self._device = st7735(serial, width=80, height=160, rotate=config.rotate)
+        self._columns = width
+        self._rows = height
+
+    def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
+        from PIL import ImageFont
+
+        try:
+            font = ImageFont.truetype("DejaVuSans-Bold.ttf", 14)
+        except OSError:
+            font = ImageFont.load_default()
+
+        colors = ["red", "orange", "yellow", "green", "cyan", "blue", "magenta", "white"]
+        visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[: self._rows]
+        line_height = 18
+        with self._canvas(self._device) as draw:
+            if flash:
+                draw.rectangle((0, 0, self._device.width, self._device.height), fill="white")
+            for row, line in enumerate(visible_lines):
+                y = row * line_height
+                color = "black" if flash else colors[row % len(colors)]
+                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width)
+
+    def show_rainbow(self, frame: int = 0) -> None:
+        stripe_width = 24
+        colors = ["red", "orange", "yellow", "green", "cyan", "blue"]
+        shift = frame % stripe_width
+        with self._canvas(self._device) as draw:
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            for idx, color in enumerate(colors):
+                x0 = -120 + idx * stripe_width + shift
+                x1 = x0 + stripe_width
+                draw.polygon([(x0, self._device.height), (x1, self._device.height), (x1 + 80, 0), (x0 + 80, 0)], fill=color)
+
+    def close(self) -> None:
+        self._device.clear()
 
 
 class SSD1306Sink(DisplaySink):
@@ -129,7 +183,7 @@ def _scroll_text(text: str, width: int, frame: int) -> str:
     return text[offset : offset + width]
 
 
-def _draw_scrolling_text(draw, text: str, font, y: int, color: int, frame: int, device_width: int) -> None:
+def _draw_scrolling_text(draw, text: str, font, y: int, color: int | str, frame: int, device_width: int) -> None:
     clean_text = text.rstrip()
     if not clean_text:
         return
