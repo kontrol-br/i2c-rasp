@@ -58,16 +58,30 @@ class ST7735Sink(DisplaySink):
         serial = spi(port=config.spi_port, device=config.spi_device, gpio_DC=config.spi_dc_pin, gpio_RST=config.spi_rst_pin)
         # O driver luma.lcd para ST7735 aceita o layout wide 160x80 (e nao 80x160).
         # A rotacao continua sendo controlada por `config.rotate`.
-        self._device = st7735(
-            serial,
-            width=160,
-            height=80,
-            rotate=config.rotate,
-            h_offset=config.spi_h_offset,
-            v_offset=config.spi_v_offset,
-            bgr=config.spi_bgr,
-            invert=config.spi_invert,
-        )
+        try:
+            self._device = st7735(
+                serial,
+                width=160,
+                height=80,
+                rotate=config.rotate,
+                h_offset=config.spi_h_offset,
+                v_offset=config.spi_v_offset,
+                bgr=config.spi_bgr,
+                invert=config.spi_invert,
+            )
+        except TypeError as exc:
+            if "invert" not in str(exc):
+                raise
+            # Compatibilidade com versões de luma.lcd sem argumento `invert`.
+            self._device = st7735(
+                serial,
+                width=160,
+                height=80,
+                rotate=config.rotate,
+                h_offset=config.spi_h_offset,
+                v_offset=config.spi_v_offset,
+                bgr=config.spi_bgr,
+            )
         self._columns = width
         self._rows = height
 
