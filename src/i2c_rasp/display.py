@@ -103,7 +103,7 @@ class ST7735Sink(DisplaySink):
         except OSError:
             font = ImageFont.load_default()
 
-        colors = ["red", "orange", "yellow", "green", "cyan", "blue", "magenta", "white"]
+        colors = ["red", "orange", "yellow", "#00ff00", "cyan", "blue", "magenta", "#00ff00"]
         visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[: self._rows]
         bbox = font.getbbox("Ag")
         text_height = max(10, bbox[3] - bbox[1])
@@ -133,11 +133,11 @@ class ST7735Sink(DisplaySink):
 
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
-            draw.text((0, 0), title, fill="white", font=title_font)
+            draw.text((0, 0), title, fill="#ffff00", font=title_font)
             time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
             time_width = time_bbox[2] - time_bbox[0]
             time_x = max(0, (self._device.width - time_width) // 2)
-            draw.text((time_x, 16), time_text, fill="white", font=time_font)
+            draw.text((time_x, 16), time_text, fill="#00ff00", font=time_font)
             draw.text((0, self._device.height - 12), date_text, fill="white", font=date_font)
 
     def show_rainbow(self, frame: int = 0) -> None:
