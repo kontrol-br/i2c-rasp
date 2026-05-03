@@ -82,8 +82,18 @@ class ST7735Sink(DisplaySink):
                 v_offset=config.spi_v_offset,
                 bgr=config.spi_bgr,
             )
+        self._set_st7735_inversion(config.spi_invert)
         self._columns = width
         self._rows = height
+
+    def _set_st7735_inversion(self, invert: bool) -> None:
+        # INVON=0x21 / INVOFF=0x20 no controlador ST7735.
+        command = 0x21 if invert else 0x20
+        if hasattr(self._device, "command"):
+            try:
+                self._device.command(command)
+            except Exception:
+                return
 
     def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
         from PIL import ImageFont
