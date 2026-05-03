@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
+from time import sleep
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,9 @@ class DisplaySink:
         self.show_page([title, time_text, date_text])
 
     def show_rainbow(self, frame: int = 0) -> None:
+        return
+
+    def run_startup_self_test(self) -> None:
         return
 
 
@@ -212,6 +217,30 @@ class ST7735Sink(DisplaySink):
 
     def close(self) -> None:
         self._device.clear()
+
+    def run_startup_self_test(self) -> None:
+        # ~6s total: 3 telas cheias RGB (1s cada) + 3s de pixels aleatorios.
+        full_screen_colors = ("red", "green", "blue")
+        for color in full_screen_colors:
+            with self._canvas(self._device) as draw:
+                draw.rectangle((0, 0, self._device.width, self._device.height), fill=color)
+            sleep(1.0)
+
+        random_frames = 12
+        frame_seconds = 0.25
+        block_size = 4
+        for _ in range(random_frames):
+            with self._canvas(self._device) as draw:
+                draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+                for y in range(0, self._device.height, block_size):
+                    for x in range(0, self._device.width, block_size):
+                        color = (
+                            random.randint(0, 255),
+                            random.randint(0, 255),
+                            random.randint(0, 255),
+                        )
+                        draw.rectangle((x, y, x + block_size - 1, y + block_size - 1), fill=color)
+            sleep(frame_seconds)
 
 
 class SSD1306Sink(DisplaySink):
