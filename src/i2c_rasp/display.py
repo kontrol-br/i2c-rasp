@@ -124,7 +124,29 @@ class ST7735Sink(DisplaySink):
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
                 color = "white" if flash else colors[row % len(colors)]
-                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width)
+                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width, x_offset=2)
+
+    def show_clock(self, title: str, time_text: str, date_text: str) -> None:
+        from PIL import ImageFont
+
+        try:
+            title_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 12)
+            time_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 34)
+            date_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 11)
+        except OSError:
+            title_font = ImageFont.load_default()
+            time_font = ImageFont.load_default()
+            date_font = ImageFont.load_default()
+
+        with self._canvas(self._device) as draw:
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
+            draw.text((2, 0), title, fill="#ffff00", font=title_font)
+            time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
+            time_width = time_bbox[2] - time_bbox[0]
+            time_x = max(0, (self._device.width - time_width) // 2)
+            draw.text((time_x, 16), time_text, fill="#1e6bff", font=time_font)
+            draw.text((2, self._device.height - 12), date_text, fill="white", font=date_font)
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
         from PIL import ImageFont
@@ -261,21 +283,22 @@ def _scroll_text(text: str, width: int, frame: int) -> str:
     return text[offset : offset + width]
 
 
-def _draw_scrolling_text(draw, text: str, font, y: int, color: int | str, frame: int, device_width: int) -> None:
+def _draw_scrolling_text(draw, text: str, font, y: int, color: int | str, frame: int, device_width: int, x_offset: int = 0) -> None:
     clean_text = text.rstrip()
     if not clean_text:
         return
 
     text_bbox = draw.textbbox((0, 0), clean_text, font=font)
     text_width = text_bbox[2] - text_bbox[0]
-    if text_width <= device_width:
-        draw.text((0, y), clean_text, fill=color, font=font)
+    available_width = max(1, device_width - x_offset)
+    if text_width <= available_width:
+        draw.text((x_offset, y), clean_text, fill=color, font=font)
         return
 
     speed_pixels_per_frame = 2
-    max_offset = text_width - device_width
+    max_offset = text_width - available_width
     offset = _ping_pong_offset(frame, max_offset, step=speed_pixels_per_frame)
-    draw.text((-offset, y), clean_text, fill=color, font=font)
+    draw.text((x_offset - offset, y), clean_text, fill=color, font=font)
 
 
 def _ping_pong_offset(frame: int, max_offset: int, step: int) -> int:
