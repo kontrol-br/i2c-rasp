@@ -208,7 +208,13 @@ Resultado esperado:
 ### 5) Confirmar dependencias Python do display
 
 ```bash
-python -m pip show luma-core luma-oled luma-lcd
+python -m pip show luma-core luma-oled luma-lcd RPi.GPIO
+```
+
+Se `RPi.GPIO` nao estiver instalado, execute:
+
+```bash
+python -m pip install RPi.GPIO
 ```
 
 Se estiver em ambiente virtual, ative antes:

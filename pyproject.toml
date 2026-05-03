@@ -16,6 +16,7 @@ dependencies = [
   "luma.oled>=3.13",
   "luma.lcd>=2.1",
   "luma.core>=2.4",
+  "RPi.GPIO>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +32,7 @@ oled = [
   "luma.oled>=3.13",
   "luma.lcd>=2.1",
   "luma.core>=2.4",
+  "RPi.GPIO>=0.7",
 ]
 
 [project.scripts]
