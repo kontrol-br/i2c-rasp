@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from i2c_rasp.alerting import evaluate_page_alerts
 from i2c_rasp.buzzer import build_buzzer
 from i2c_rasp.config import HostConfig, load_config
-from i2c_rasp.display import SSD1306Sink, TerminalSink
+from i2c_rasp.display import SSD1306Sink, ST7735Sink, TerminalSink
 from i2c_rasp.render import render_pages
 from i2c_rasp.scrape import MetricsScraper, ScrapeError
 from i2c_rasp.snapshot import SnapshotBuilder
@@ -77,6 +77,8 @@ def main() -> None:
                     page_seconds=config.display.page_seconds,
                     once=args.once,
                 )
+
+        _show_rainbow_cycle(sink, config.display.page_seconds, args.once)
 
         title, time_text, date_text = _clock_content()
         sink.show_clock(title, time_text, date_text)
@@ -175,6 +177,8 @@ def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
     if force_terminal or not oled_config.enabled:
         return TerminalSink()
     try:
+        if oled_config.model.lower() == "st7735":
+            return ST7735Sink(width, height, oled_config)
         return SSD1306Sink(width, height, oled_config)
     except Exception as exc:
         print(
@@ -183,3 +187,17 @@ def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
             flush=True,
         )
         return TerminalSink()
+
+
+def _show_rainbow_cycle(sink, page_seconds: float, once: bool) -> None:
+    if once:
+        sink.show_rainbow(frame=0)
+        return
+    elapsed = 0.0
+    frame = 0
+    while elapsed < page_seconds:
+        sink.show_rainbow(frame=frame)
+        step = min(FRAME_STEP_SECONDS, page_seconds - elapsed)
+        sleep(step)
+        elapsed += step
+        frame += 1
