@@ -163,6 +163,7 @@ class ST7735Sink(DisplaySink):
         y_top = 0
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             for idx, color in enumerate(colors):
                 x0 = x_start + idx * stripe_width
                 x1 = x0 + stripe_width
