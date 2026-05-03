@@ -118,12 +118,14 @@ class ST7735Sink(DisplaySink):
         available_height = max(1, self._device.height - top_margin - bottom_margin)
         line_height = max(text_height + 2, available_height // max(1, len(visible_lines)))
         with self._canvas(self._device) as draw:
-            # Mantem fundo preto em todos os estados.
-            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
-            _draw_decorative_border(draw, self._device.width, self._device.height)
+            # No alerta, inverte o fundo inteiro para criar efeito de pisca visivel.
+            background = "white" if flash else "black"
+            border_color = "black" if flash else "#0033cc"
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill=background)
+            _draw_decorative_border(draw, self._device.width, self._device.height, border_color)
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
-                color = "white" if flash else colors[row % len(colors)]
+                color = "black" if flash else colors[row % len(colors)]
                 _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width, x_offset=3)
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
@@ -155,20 +157,58 @@ class ST7735Sink(DisplaySink):
             draw.text((date_x, self._device.height - 12), date_text, fill="white", font=date_font)
 
     def show_rainbow(self, frame: int = 0) -> None:
-        colors = ["#ff2b5f", "#f7b42c", "#7ac143", "#3b82d6"]
-        stripe_width = 34
-        slant = 30
-        x_start = -16
-        y_bottom = self._device.height
-        y_top = 0
+        from PIL import ImageFont
+
+        background = "#35353a"
+        white = "#f2f2f2"
+        red = "#ef2b35"
+        yellow = "#f5e60a"
+        green = "#07ad59"
+
+        try:
+            logo_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 42)
+        except OSError:
+            logo_font = ImageFont.load_default()
+
+        w = self._device.width
+        h = self._device.height
+
         with self._canvas(self._device) as draw:
-            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
-            _draw_decorative_border(draw, self._device.width, self._device.height)
-            for idx, color in enumerate(colors):
-                x0 = x_start + idx * stripe_width
-                x1 = x0 + stripe_width
-                draw.polygon([(x0, y_bottom), (x1, y_bottom), (x1 + slant, y_top), (x0 + slant, y_top)], fill=color)
-            _draw_decorative_border(draw, self._device.width, self._device.height)
+            draw.rectangle((0, 0, w, h), fill=background)
+
+            # Texto principal (equivalente ao logo "KONTROL", ajustado para 160x80).
+            text = "KONTROL"
+            text_bbox = draw.textbbox((0, 0), text, font=logo_font)
+            text_w = text_bbox[2] - text_bbox[0]
+            text_h = text_bbox[3] - text_bbox[1]
+            text_x = max(2, (w - text_w) // 2)
+            text_y = max(0, (h - text_h) // 2 - 2)
+            draw.text((text_x, text_y), text, fill=white, font=logo_font)
+
+            # Bloco central com faixas inclinadas nas cores do anexo.
+            cx = w // 2
+            top = 8
+            bottom = h - 8
+            left = cx - 24
+            right = cx + 24
+            # moldura branca
+            draw.rectangle((left, top, right, bottom), outline=white, width=2)
+            # divisórias verticais
+            draw.rectangle((left + 16, top, left + 22, bottom), fill=white)
+            draw.rectangle((right - 22, top, right - 16, bottom), fill=white)
+            # faixas coloridas
+            draw.rectangle((left + 2, top + 2, left + 14, bottom - 2), fill=red)
+            draw.rectangle((left + 24, top + 2, right - 24, bottom - 2), fill=yellow)
+            draw.rectangle((right - 14, top + 2, right - 2, bottom - 2), fill=green)
+            # recortes diagonais escuros para lembrar o "N" do logo
+            draw.polygon(
+                [(left + 3, bottom - 3), (left + 12, bottom - 3), (left + 33, top + 3), (left + 24, top + 3)],
+                fill=background,
+            )
+            draw.polygon(
+                [(right - 33, bottom - 3), (right - 24, bottom - 3), (right - 3, top + 3), (right - 12, top + 3)],
+                fill=background,
+            )
 
     def close(self) -> None:
         self._device.clear()
