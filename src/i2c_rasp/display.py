@@ -52,7 +52,9 @@ class ST7735Sink(DisplaySink):
 
         self._canvas = canvas
         serial = spi(port=config.spi_port, device=config.spi_device, gpio_DC=config.spi_dc_pin, gpio_RST=config.spi_rst_pin)
-        self._device = st7735(serial, width=80, height=160, rotate=config.rotate)
+        # O driver luma.lcd para ST7735 aceita o layout wide 160x80 (e nao 80x160).
+        # A rotacao continua sendo controlada por `config.rotate`.
+        self._device = st7735(serial, width=160, height=80, rotate=config.rotate)
         self._columns = width
         self._rows = height
 
