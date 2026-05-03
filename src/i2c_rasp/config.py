@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 from i2c_rasp.display import OledConfig
 from pathlib import Path
@@ -96,7 +96,12 @@ def load_config(path: str | Path | None) -> AppConfig:
         scrape=ScrapeConfig(**data.get("scrape", {})),
         display=DisplayConfig(**data.get("display", {})),
         interfaces=InterfaceConfig(**data.get("interfaces", {})),
-        oled=OledConfig(**data.get("oled", {})),
+        oled=OledConfig(**_filter_dataclass_kwargs(OledConfig, data.get("oled", {}))),
         alert_thresholds=AlertThresholdsConfig(**data.get("alert_thresholds", {})),
         buzzer=BuzzerConfig(**data.get("buzzer", {})),
     )
+
+
+def _filter_dataclass_kwargs(cls, raw: dict) -> dict:
+    allowed = {item.name for item in fields(cls)}
+    return {key: value for key, value in raw.items() if key in allowed}

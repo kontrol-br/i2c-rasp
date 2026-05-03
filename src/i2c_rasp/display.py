@@ -14,6 +14,10 @@ class OledConfig:
     spi_device: int = 0
     spi_dc_pin: int = 24
     spi_rst_pin: int = 25
+    spi_h_offset: int = 1
+    spi_v_offset: int = 26
+    spi_bgr: bool = True
+    spi_invert: bool = False
 
 
 class DisplaySink:
@@ -52,7 +56,32 @@ class ST7735Sink(DisplaySink):
 
         self._canvas = canvas
         serial = spi(port=config.spi_port, device=config.spi_device, gpio_DC=config.spi_dc_pin, gpio_RST=config.spi_rst_pin)
-        self._device = st7735(serial, width=80, height=160, rotate=config.rotate)
+        # O driver luma.lcd para ST7735 aceita o layout wide 160x80 (e nao 80x160).
+        # A rotacao continua sendo controlada por `config.rotate`.
+        try:
+            self._device = st7735(
+                serial,
+                width=160,
+                height=80,
+                rotate=config.rotate,
+                h_offset=config.spi_h_offset,
+                v_offset=config.spi_v_offset,
+                bgr=config.spi_bgr,
+                invert=config.spi_invert,
+            )
+        except TypeError as exc:
+            if "invert" not in str(exc):
+                raise
+            # Compatibilidade com versões de luma.lcd sem argumento `invert`.
+            self._device = st7735(
+                serial,
+                width=160,
+                height=80,
+                rotate=config.rotate,
+                h_offset=config.spi_h_offset,
+                v_offset=config.spi_v_offset,
+                bgr=config.spi_bgr,
+            )
         self._columns = width
         self._rows = height
 
@@ -60,19 +89,24 @@ class ST7735Sink(DisplaySink):
         from PIL import ImageFont
 
         try:
-            font = ImageFont.truetype("DejaVuSans-Bold.ttf", 14)
+            font = ImageFont.truetype("DejaVuSans-Bold.ttf", 12)
         except OSError:
             font = ImageFont.load_default()
 
         colors = ["red", "orange", "yellow", "green", "cyan", "blue", "magenta", "white"]
         visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[: self._rows]
-        line_height = 18
+        bbox = font.getbbox("Ag")
+        text_height = max(10, bbox[3] - bbox[1])
+        top_margin = 4
+        bottom_margin = 4
+        available_height = max(1, self._device.height - top_margin - bottom_margin)
+        line_height = max(text_height + 2, available_height // max(1, len(visible_lines)))
         with self._canvas(self._device) as draw:
-            if flash:
-                draw.rectangle((0, 0, self._device.width, self._device.height), fill="white")
+            # Mantem fundo preto em todos os estados.
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
             for row, line in enumerate(visible_lines):
-                y = row * line_height
-                color = "black" if flash else colors[row % len(colors)]
+                y = top_margin + row * line_height
+                color = "white" if flash else colors[row % len(colors)]
                 _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width)
 
     def show_rainbow(self, frame: int = 0) -> None:
