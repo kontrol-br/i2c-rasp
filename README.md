@@ -82,6 +82,9 @@ spi_port = 0
 spi_device = 0
 spi_dc_pin = 24
 spi_rst_pin = 25
+spi_h_offset = 1
+spi_v_offset = 26
+spi_bgr = true
 
 [alert_thresholds]
 cpu_percent = 85

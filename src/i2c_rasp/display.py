@@ -14,6 +14,9 @@ class OledConfig:
     spi_device: int = 0
     spi_dc_pin: int = 24
     spi_rst_pin: int = 25
+    spi_h_offset: int = 1
+    spi_v_offset: int = 26
+    spi_bgr: bool = True
 
 
 class DisplaySink:
@@ -54,7 +57,15 @@ class ST7735Sink(DisplaySink):
         serial = spi(port=config.spi_port, device=config.spi_device, gpio_DC=config.spi_dc_pin, gpio_RST=config.spi_rst_pin)
         # O driver luma.lcd para ST7735 aceita o layout wide 160x80 (e nao 80x160).
         # A rotacao continua sendo controlada por `config.rotate`.
-        self._device = st7735(serial, width=160, height=80, rotate=config.rotate)
+        self._device = st7735(
+            serial,
+            width=160,
+            height=80,
+            rotate=config.rotate,
+            h_offset=config.spi_h_offset,
+            v_offset=config.spi_v_offset,
+            bgr=config.spi_bgr,
+        )
         self._columns = width
         self._rows = height
 
