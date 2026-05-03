@@ -14,6 +14,7 @@ authors = [
 ]
 dependencies = [
   "luma.oled>=3.13",
+  "luma.lcd>=2.1",
   "luma.core>=2.4",
 ]
 
@@ -28,6 +29,7 @@ lcd = [
 ]
 oled = [
   "luma.oled>=3.13",
+  "luma.lcd>=2.1",
   "luma.core>=2.4",
 ]
 
