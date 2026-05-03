@@ -20,6 +20,12 @@ class OledConfig:
     spi_invert: bool = False
 
 
+
+
+def _draw_decorative_border(draw, width: int, height: int, color: str = "#0033cc") -> None:
+    draw.rectangle((0, 0, width - 1, height - 1), outline=color, width=2)
+
+
 class DisplaySink:
     def show_page(self, lines: list[str], *, flash: bool = False, frame: int = 0) -> None:
         raise NotImplementedError
@@ -103,7 +109,7 @@ class ST7735Sink(DisplaySink):
         except OSError:
             font = ImageFont.load_default()
 
-        colors = ["red", "orange", "yellow", "green", "cyan", "blue", "magenta", "white"]
+        colors = ["red", "orange", "yellow", "#00ff00", "cyan", "blue", "magenta", "#00ff00"]
         visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[: self._rows]
         bbox = font.getbbox("Ag")
         text_height = max(10, bbox[3] - bbox[1])
@@ -114,21 +120,54 @@ class ST7735Sink(DisplaySink):
         with self._canvas(self._device) as draw:
             # Mantem fundo preto em todos os estados.
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
                 color = "white" if flash else colors[row % len(colors)]
-                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width)
+                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width, x_offset=3)
+
+    def show_clock(self, title: str, time_text: str, date_text: str) -> None:
+        from PIL import ImageFont
+
+        try:
+            title_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 12)
+            time_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 34)
+            date_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 11)
+        except OSError:
+            title_font = ImageFont.load_default()
+            time_font = ImageFont.load_default()
+            date_font = ImageFont.load_default()
+
+        with self._canvas(self._device) as draw:
+            draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
+            _draw_decorative_border(draw, self._device.width, self._device.height)
+            title_bbox = draw.textbbox((0, 0), title, font=title_font)
+            title_width = title_bbox[2] - title_bbox[0]
+            title_x = max(0, (self._device.width - title_width) // 2)
+            draw.text((title_x, 0), title, fill="#ffff00", font=title_font)
+            time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
+            time_width = time_bbox[2] - time_bbox[0]
+            time_x = max(0, (self._device.width - time_width) // 2)
+            draw.text((time_x, 16), time_text, fill="#1500d1", font=time_font)
+            date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
+            date_width = date_bbox[2] - date_bbox[0]
+            date_x = max(0, (self._device.width - date_width) // 2)
+            draw.text((date_x, self._device.height - 12), date_text, fill="white", font=date_font)
 
     def show_rainbow(self, frame: int = 0) -> None:
-        stripe_width = 24
-        colors = ["red", "orange", "yellow", "green", "cyan", "blue"]
-        shift = frame % stripe_width
+        colors = ["#ff2b5f", "#f7b42c", "#7ac143", "#3b82d6"]
+        stripe_width = 34
+        slant = 30
+        x_start = -16
+        y_bottom = self._device.height
+        y_top = 0
         with self._canvas(self._device) as draw:
             draw.rectangle((0, 0, self._device.width, self._device.height), fill="black")
             for idx, color in enumerate(colors):
-                x0 = -120 + idx * stripe_width + shift
+                x0 = x_start + idx * stripe_width
                 x1 = x0 + stripe_width
-                draw.polygon([(x0, self._device.height), (x1, self._device.height), (x1 + 80, 0), (x0 + 80, 0)], fill=color)
+                draw.polygon([(x0, y_bottom), (x1, y_bottom), (x1 + slant, y_top), (x0 + slant, y_top)], fill=color)
+            _draw_decorative_border(draw, self._device.width, self._device.height)
 
     def close(self) -> None:
         self._device.clear()
@@ -227,21 +266,22 @@ def _scroll_text(text: str, width: int, frame: int) -> str:
     return text[offset : offset + width]
 
 
-def _draw_scrolling_text(draw, text: str, font, y: int, color: int | str, frame: int, device_width: int) -> None:
+def _draw_scrolling_text(draw, text: str, font, y: int, color: int | str, frame: int, device_width: int, x_offset: int = 0) -> None:
     clean_text = text.rstrip()
     if not clean_text:
         return
 
     text_bbox = draw.textbbox((0, 0), clean_text, font=font)
     text_width = text_bbox[2] - text_bbox[0]
-    if text_width <= device_width:
-        draw.text((0, y), clean_text, fill=color, font=font)
+    available_width = max(1, device_width - x_offset)
+    if text_width <= available_width:
+        draw.text((x_offset, y), clean_text, fill=color, font=font)
         return
 
     speed_pixels_per_frame = 2
-    max_offset = text_width - device_width
+    max_offset = text_width - available_width
     offset = _ping_pong_offset(frame, max_offset, step=speed_pixels_per_frame)
-    draw.text((-offset, y), clean_text, fill=color, font=font)
+    draw.text((x_offset - offset, y), clean_text, fill=color, font=font)
 
 
 def _ping_pong_offset(frame: int, max_offset: int, step: int) -> int:
