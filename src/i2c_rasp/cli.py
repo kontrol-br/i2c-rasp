@@ -41,6 +41,7 @@ def main() -> None:
     for host in hosts:
         _prime_host(host, scrapers[host.name], builders[host.name])
     sleep(min(1.0, config.display.refresh_seconds))
+    sink.run_startup_self_test()
 
     while True:
         for host in hosts:
