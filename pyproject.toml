@@ -14,7 +14,12 @@ authors = [
 ]
 dependencies = [
   "luma.oled>=3.13",
+  "luma.lcd>=2.1",
   "luma.core>=2.4",
+  "pillow>=10.0",
+  "gpiozero>=2.0",
+  "RPi.GPIO>=0.7",
+  "spidev>=3.6",
 ]
 
 [project.optional-dependencies]
@@ -28,7 +33,12 @@ lcd = [
 ]
 oled = [
   "luma.oled>=3.13",
+  "luma.lcd>=2.1",
   "luma.core>=2.4",
+  "pillow>=10.0",
+  "gpiozero>=2.0",
+  "RPi.GPIO>=0.7",
+  "spidev>=3.6",
 ]
 
 [project.scripts]
