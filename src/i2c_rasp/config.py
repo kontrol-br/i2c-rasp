@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import tomllib
 from dataclasses import dataclass, field, fields
-
-from i2c_rasp.display import OledConfig
 from pathlib import Path
 from urllib.parse import urlsplit
+
+from i2c_rasp.display import OledConfig
 
 
 @dataclass(frozen=True)
@@ -62,6 +62,18 @@ class AlertThresholdsConfig:
 class BuzzerConfig:
     enabled: bool = False
     gpio_pin: int = 18
+    mode: str = "active"
+    active_high: bool = True
+    frequency_hz: int = 2000
+    duty_cycle: float = 0.5
+
+    def __post_init__(self) -> None:
+        if self.mode not in {"active", "pwm"}:
+            raise ValueError('buzzer.mode deve ser "active" ou "pwm"')
+        if self.frequency_hz <= 0:
+            raise ValueError("buzzer.frequency_hz deve ser maior que zero")
+        if not 0.0 < self.duty_cycle <= 1.0:
+            raise ValueError("buzzer.duty_cycle deve estar entre 0 e 1")
 
 
 @dataclass(frozen=True)
