@@ -95,10 +95,52 @@ temperature_celsius = 75
 
 [buzzer]
 enabled = false
+# gpiozero usa numeracao BCM: GPIO18 fica no pino fisico 12 do Raspberry Pi.
 gpio_pin = 18
+# "active" para buzzers ativos; "pwm" para buzzers passivos/piezo.
+mode = "active"
+# Use false se o modulo com transistor for acionado em nivel baixo (active-low).
+active_high = true
+# Usado apenas em mode = "pwm".
+frequency_hz = 2000
+duty_cycle = 0.5
 ```
 
 ---
+
+## Buzzer/alarme sonoro
+
+O alarme sonoro e acionado quando uma tela esta em alerta, desde que `[buzzer].enabled = true`.
+
+Pontos importantes para a ligacao do modulo buzzer:
+
+- A configuracao `gpio_pin` usa a numeracao **BCM** do `gpiozero`, nao o numero fisico do conector. Portanto `gpio_pin = 18` significa **GPIO18 / pino fisico 12**. Se o fio foi colocado no **pino fisico 18**, configure `gpio_pin = 24` ou mova o fio para o pino fisico 12.
+- Modulos com VCC em 5V precisam ter **GND comum** com o Raspberry Pi. O pino de sinal deve ir ao GPIO; nao injete 5V diretamente no GPIO.
+- Se o modulo for um buzzer **ativo**, deixe `mode = "active"`. Se ele for acionado em nivel baixo por transistor, use `active_high = false`.
+- Se o som for apenas um ruido baixo/pulsante, o modulo provavelmente e **passivo/piezo** e precisa de onda PWM. Nesse caso use `mode = "pwm"`, comece com `frequency_hz = 2000` e ajuste entre 1000 e 4000 Hz.
+- No perfil ST7735, o pino fisico 18 ja e sugerido para `DC` do display (`GPIO24`), entao evite compartilhar esse GPIO com o buzzer.
+
+Exemplo para buzzer passivo/piezo no GPIO18 fisico 12:
+
+```toml
+[buzzer]
+enabled = true
+gpio_pin = 18
+mode = "pwm"
+active_high = true
+frequency_hz = 2000
+duty_cycle = 0.5
+```
+
+Exemplo para modulo ativo com transistor que dispara em nivel baixo no GPIO24 fisico 18:
+
+```toml
+[buzzer]
+enabled = true
+gpio_pin = 24
+mode = "active"
+active_high = false
+```
 
 ## Comportamento das telas
 
