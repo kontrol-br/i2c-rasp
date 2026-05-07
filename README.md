@@ -95,6 +95,7 @@ temperature_celsius = 75
 
 [buzzer]
 enabled = false
+# Mesmo com enabled=false, o app tenta manter este GPIO em estado inativo.
 # gpiozero usa numeracao BCM: GPIO18 fica no pino fisico 12 do Raspberry Pi.
 gpio_pin = 18
 # "active" para buzzers ativos; "pwm" para buzzers passivos/piezo.
@@ -117,7 +118,8 @@ Pontos importantes para a ligacao do modulo buzzer:
 - A configuracao `gpio_pin` usa a numeracao **BCM** do `gpiozero`, nao o numero fisico do conector. Portanto `gpio_pin = 18` significa **GPIO18 / pino fisico 12**. Se o fio foi colocado no **pino fisico 18**, configure `gpio_pin = 24` ou mova o fio para o pino fisico 12.
 - Modulos com VCC em 5V precisam ter **GND comum** com o Raspberry Pi. O pino de sinal deve ir ao GPIO; nao injete 5V diretamente no GPIO.
 - Se o modulo for um buzzer **ativo**, deixe `mode = "active"`. Se ele for acionado em nivel baixo por transistor, use `active_high = false`; quando `active_high` fica invertido, o comando `off()` mantem o sinal no nivel que liga o modulo e o buzzer pode apitar direto.
-- Em paradas/reinicios do servico, o aplicativo agora trata `SIGTERM`/`SIGINT` e fecha o GPIO para forcar o buzzer desligado antes de sair.
+- Com `enabled = false`, o aplicativo nao dispara alertas sonoros, mas ainda inicializa o GPIO configurado e o mantem em estado inativo. Isso evita que modulos active-low apitem por ficarem sem nivel definido enquanto o servico esta rodando.
+- Em paradas/reinicios do servico, o aplicativo trata `SIGTERM`/`SIGINT` e fecha o GPIO para forcar o buzzer desligado antes de sair.
 - Se o som for apenas um ruido baixo/pulsante, o modulo provavelmente e **passivo/piezo** e precisa de onda PWM. Nesse caso use `mode = "pwm"`, comece com `frequency_hz = 2000` e ajuste entre 1000 e 4000 Hz.
 - No perfil ST7735, o pino fisico 18 ja e sugerido para `DC` do display (`GPIO24`), entao evite compartilhar esse GPIO com o buzzer.
 
@@ -142,6 +144,17 @@ gpio_pin = 24
 mode = "active"
 active_high = false
 ```
+
+Exemplo para silenciar completamente um modulo active-low, mantendo o pino em nivel inativo enquanto o servico roda:
+
+```toml
+[buzzer]
+enabled = false
+gpio_pin = 18
+active_high = false
+```
+
+Ao iniciar, o log mostra a configuracao efetivamente carregada do buzzer. Se o log nao mostrar o GPIO, `mode` ou `active_high` esperados, o servico provavelmente esta lendo outro arquivo de configuracao.
 
 ## Comportamento das telas
 
