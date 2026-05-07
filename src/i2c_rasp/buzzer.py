@@ -54,21 +54,27 @@ class GpioBuzzer(Buzzer):
     def __init__(self, config: BuzzerConfig) -> None:
         self._config = config
         self._buzzer = None
+        self._is_primed_off = False
         self._on_value = config.duty_cycle if config.mode == "pwm" else None
 
     def on(self) -> None:
         self._ensure_device()
+        self._is_primed_off = False
         if self._on_value is None:
             self._buzzer.on()
             return
         self._buzzer.value = self._on_value
 
     def off(self) -> None:
+        if self._buzzer is None and self._is_primed_off:
+            return
         self._ensure_device()
         self._close_output_device()
+        self._is_primed_off = True
 
     def close(self) -> None:
         self._close_output_device()
+        self._is_primed_off = False
 
     def _ensure_device(self) -> None:
         if self._buzzer is not None:
@@ -118,7 +124,7 @@ def build_buzzer(config: BuzzerConfig) -> Buzzer:
         print(
             "Buzzer habilitado: "
             f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}. "
-            "O GPIO e inicializado/desligado no start e liberado em off.",
+            "O GPIO e desligado no start e so e reaberto durante pulsos.",
             flush=True,
         )
         return GpioBuzzer(config)

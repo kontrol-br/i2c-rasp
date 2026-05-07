@@ -152,12 +152,14 @@ def test_build_buzzer_enabled_off_primes_and_releases_output_without_input_probe
 
     buzzer = build_buzzer(BuzzerConfig(enabled=True, gpio_pin=18, active_high=False))
     buzzer.off()
+    buzzer.off()
 
     assert len(FakeDigitalBuzzer.instances) == 1
     assert FakeDigitalBuzzer.instances[0].off_count == 1
     assert FakeDigitalBuzzer.instances[0].close_count == 1
 
     buzzer.on()
+    buzzer.off()
     buzzer.off()
     buzzer.close()
 
