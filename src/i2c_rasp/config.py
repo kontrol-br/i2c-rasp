@@ -103,7 +103,9 @@ def load_config(path: str | Path | None) -> AppConfig:
         host_entries = [
             {
                 "name": target.get("name", "kontrol"),
-                "host": target.get("host", target.get("metrics_url", "http://10.0.0.1:9100/metrics")),
+                "host": target.get(
+                    "host", target.get("metrics_url", "http://10.0.0.1:9100/metrics")
+                ),
                 "port": target.get("port", 9100),
             }
         ]
@@ -156,7 +158,9 @@ def _format_toml_error(path: Path, raw: str, exc: tomllib.TOMLDecodeError) -> st
     hints = []
     stripped = line.strip()
     if stripped and not stripped.startswith(("#", "[")) and "=" not in stripped:
-        hints.append("Esta linha parece nao ter '='. Em TOML, comentarios precisam comecar com '#'.")
+        hints.append(
+            "Esta linha parece nao ter '='. Em TOML, comentarios precisam comecar com '#'."
+        )
     if "//" in line:
         hints.append("TOML nao aceita comentario com '//'; use '#'.")
     if ":" in line and "=" not in line:

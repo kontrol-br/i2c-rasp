@@ -42,7 +42,9 @@ def render_pages(snapshot: DeviceSnapshot, width: int, height: int) -> list[Rend
     ]
 
     for interface in snapshot.interfaces:
-        pages.append(RenderedPage(kind="interface", lines=_render_interface(interface, width, height)))
+        pages.append(
+            RenderedPage(kind="interface", lines=_render_interface(interface, width, height))
+        )
 
     pages.extend(
         [

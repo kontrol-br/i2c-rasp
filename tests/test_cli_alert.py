@@ -60,6 +60,23 @@ def test_show_page_with_alert_once_does_not_sleep():
     assert buzzer.off_count == 4
 
 
+def test_animate_alert_page_blinks_without_extra_buzzer_pulses(monkeypatch):
+    sink = FakeSink()
+    buzzer = FakeBuzzer()
+    sleeps = []
+    monkeypatch.setattr(cli, "sleep", sleeps.append)
+
+    cli._animate_alert_page(sink, buzzer, ["alert"], total_seconds=0.75)
+
+    assert buzzer.events == []
+    assert sink.calls == [
+        (("alert",), True),
+        (("alert",), False),
+        (("alert",), True),
+    ]
+    assert sleeps == [0.25, 0.25, 0.25]
+
+
 def test_show_page_without_alert_forces_buzzer_off(monkeypatch):
     sink = FakeSink()
     buzzer = FakeBuzzer()
@@ -171,7 +188,9 @@ def test_buzzer_raw_debug_drives_physical_level_and_closes(monkeypatch):
     cli._run_buzzer_raw_debug(18, high=False, seconds=2.0)
     cli._run_buzzer_raw_debug(18, high=True, seconds=3.0)
 
-    assert [(device.pin, device.active_high, device.initial_value, device.value) for device in devices] == [
+    assert [
+        (device.pin, device.active_high, device.initial_value, device.value) for device in devices
+    ] == [
         (18, True, False, 0),
         (18, True, True, 1),
     ]

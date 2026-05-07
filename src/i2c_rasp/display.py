@@ -22,8 +22,6 @@ class OledConfig:
     spi_invert: bool = False
 
 
-
-
 def _draw_decorative_border(draw, width: int, height: int, color: str = "#0033cc") -> None:
     draw.rectangle((0, 0, width - 1, height - 1), outline=color, width=2)
 
@@ -66,7 +64,12 @@ class ST7735Sink(DisplaySink):
         from luma.lcd.device import st7735
 
         self._canvas = canvas
-        serial = spi(port=config.spi_port, device=config.spi_device, gpio_DC=config.spi_dc_pin, gpio_RST=config.spi_rst_pin)
+        serial = spi(
+            port=config.spi_port,
+            device=config.spi_device,
+            gpio_DC=config.spi_dc_pin,
+            gpio_RST=config.spi_rst_pin,
+        )
         # O driver luma.lcd para ST7735 aceita o layout wide 160x80 (e nao 80x160).
         # A rotacao continua sendo controlada por `config.rotate`.
         try:
@@ -115,7 +118,9 @@ class ST7735Sink(DisplaySink):
             font = ImageFont.load_default()
 
         colors = ["red", "orange", "yellow", "#00ff00", "cyan", "blue", "magenta", "#00ff00"]
-        visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[: self._rows]
+        visible_lines = [line for line in lines[: self._rows] if line.strip()] or lines[
+            : self._rows
+        ]
         bbox = font.getbbox("Ag")
         text_height = max(10, bbox[3] - bbox[1])
         top_margin = 4
@@ -131,7 +136,9 @@ class ST7735Sink(DisplaySink):
             for row, line in enumerate(visible_lines):
                 y = top_margin + row * line_height
                 color = "black" if flash else colors[row % len(colors)]
-                _draw_scrolling_text(draw, line, font, y, color, frame, self._device.width, x_offset=3)
+                _draw_scrolling_text(
+                    draw, line, font, y, color, frame, self._device.width, x_offset=3
+                )
 
     def show_clock(self, title: str, time_text: str, date_text: str) -> None:
         from PIL import ImageFont
@@ -207,11 +214,21 @@ class ST7735Sink(DisplaySink):
             draw.rectangle((right - 14, top + 2, right - 2, bottom - 2), fill=green)
             # recortes diagonais escuros para lembrar o "N" do logo
             draw.polygon(
-                [(left + 3, bottom - 3), (left + 12, bottom - 3), (left + 33, top + 3), (left + 24, top + 3)],
+                [
+                    (left + 3, bottom - 3),
+                    (left + 12, bottom - 3),
+                    (left + 33, top + 3),
+                    (left + 24, top + 3),
+                ],
                 fill=background,
             )
             draw.polygon(
-                [(right - 33, bottom - 3), (right - 24, bottom - 3), (right - 3, top + 3), (right - 12, top + 3)],
+                [
+                    (right - 33, bottom - 3),
+                    (right - 24, bottom - 3),
+                    (right - 3, top + 3),
+                    (right - 12, top + 3),
+                ],
                 fill=background,
             )
 
@@ -280,7 +297,9 @@ class SSD1306Sink(DisplaySink):
 
         with self._canvas(self._device) as draw:
             if flash:
-                draw.rectangle((0, 0, self._device.width, self._device.height), outline=255, fill=255)
+                draw.rectangle(
+                    (0, 0, self._device.width, self._device.height), outline=255, fill=255
+                )
             for row, raw_line in enumerate(visible_lines):
                 color = 0 if flash else 255
                 if row == 0:
@@ -336,7 +355,16 @@ def _scroll_text(text: str, width: int, frame: int) -> str:
     return text[offset : offset + width]
 
 
-def _draw_scrolling_text(draw, text: str, font, y: int, color: int | str, frame: int, device_width: int, x_offset: int = 0) -> None:
+def _draw_scrolling_text(
+    draw,
+    text: str,
+    font,
+    y: int,
+    color: int | str,
+    frame: int,
+    device_width: int,
+    x_offset: int = 0,
+) -> None:
     clean_text = text.rstrip()
     if not clean_text:
         return
