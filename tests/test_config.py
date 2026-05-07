@@ -1,5 +1,4 @@
-from i2c_rasp.config import HostConfig
-from i2c_rasp.config import load_config
+from i2c_rasp.config import HostConfig, load_config
 
 
 def test_host_config_builds_metrics_url_from_host_and_port() -> None:
@@ -27,6 +26,10 @@ temperature_celsius = 70
 [buzzer]
 enabled = true
 gpio_pin = 23
+mode = "pwm"
+active_high = false
+frequency_hz = 2500
+duty_cycle = 0.25
 """,
         encoding="utf-8",
     )
@@ -39,6 +42,10 @@ gpio_pin = 23
     assert config.alert_thresholds.temperature_celsius == 70
     assert config.buzzer.enabled is True
     assert config.buzzer.gpio_pin == 23
+    assert config.buzzer.mode == "pwm"
+    assert config.buzzer.active_high is False
+    assert config.buzzer.frequency_hz == 2500
+    assert config.buzzer.duty_cycle == 0.25
 
 
 def test_load_config_supports_st7735_display_model(tmp_path) -> None:

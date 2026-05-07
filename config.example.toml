@@ -42,4 +42,12 @@ temperature_celsius = 75
 
 [buzzer]
 enabled = false
+# gpiozero usa numeracao BCM: GPIO18 fica no pino fisico 12 do Raspberry Pi.
 gpio_pin = 18
+# "active" para buzzers ativos; "pwm" para buzzers passivos/piezo.
+mode = "active"
+# Use false se o modulo com transistor for acionado em nivel baixo (active-low).
+active_high = true
+# Usado apenas em mode = "pwm".
+frequency_hz = 2000
+duty_cycle = 0.5

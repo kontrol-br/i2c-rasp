@@ -50,3 +50,37 @@ def test_show_page_with_alert_once_does_not_sleep():
     assert sink.calls == [(("a",), True)]
     assert buzzer.on_count == 1
     assert buzzer.off_count == 1
+
+
+def test_show_page_without_alert_forces_buzzer_off(monkeypatch):
+    sink = FakeSink()
+    buzzer = FakeBuzzer()
+    sleeps = []
+
+    def fake_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(cli, "sleep", fake_sleep)
+
+    cli._show_page_with_alert(sink, buzzer, ["ok"], alert=False, page_seconds=1.0, once=False)
+
+    assert buzzer.on_count == 0
+    assert buzzer.off_count == 1
+    assert sink.calls == [
+        (("ok",), False),
+        (("ok",), False),
+        (("ok",), False),
+        (("ok",), False),
+    ]
+    assert sum(sleeps) == 1.0
+
+
+def test_show_page_without_alert_once_forces_buzzer_off():
+    sink = FakeSink()
+    buzzer = FakeBuzzer()
+
+    cli._show_page_with_alert(sink, buzzer, ["ok"], alert=False, page_seconds=1.0, once=True)
+
+    assert sink.calls == [(("ok",), False)]
+    assert buzzer.on_count == 0
+    assert buzzer.off_count == 1
