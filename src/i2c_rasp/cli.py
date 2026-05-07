@@ -15,6 +15,9 @@ from i2c_rasp.scrape import MetricsScraper, ScrapeError
 from i2c_rasp.snapshot import SnapshotBuilder
 
 FRAME_STEP_SECONDS = 0.25
+ALERT_BUZZER_PULSES = 3
+ALERT_BUZZER_ON_SECONDS = 0.2
+ALERT_BUZZER_OFF_SECONDS = 0.15
 
 
 def main() -> None:
@@ -301,6 +304,13 @@ def _show_page_with_alert(
 
     total_seconds = page_seconds * 2.0
     try:
+        print(f"Alerta sonoro: {ALERT_BUZZER_PULSES} pulsos curtos.", flush=True)
+        _pulse_buzzer(
+            buzzer,
+            pulses=ALERT_BUZZER_PULSES,
+            on_seconds=ALERT_BUZZER_ON_SECONDS,
+            off_seconds=ALERT_BUZZER_OFF_SECONDS,
+        )
         if once:
             buzzer.on()
             sink.show_page(page, flash=True, frame=0)
@@ -310,27 +320,13 @@ def _show_page_with_alert(
         buzzer.off()
 
 
-def _animate_alert_page(sink, buzzer, page: list[str], total_seconds: float) -> None:
-    elapsed = 0.0
-    frame = 0
-    buzzer_is_on = False
-    while elapsed < total_seconds:
-        flash_on = frame % 2 == 0
-        if flash_on and not buzzer_is_on:
-            buzzer.on()
-            buzzer_is_on = True
-        elif not flash_on and buzzer_is_on:
-            buzzer.off()
-            buzzer_is_on = False
-
-        sink.show_page(page, flash=flash_on, frame=frame)
-        step = min(FRAME_STEP_SECONDS, total_seconds - elapsed)
-        sleep(step)
-        elapsed += step
-        frame += 1
-
-    if buzzer_is_on:
+def _pulse_buzzer(buzzer, *, pulses: int, on_seconds: float, off_seconds: float) -> None:
+    for index in range(max(0, pulses)):
+        buzzer.on()
+        sleep(on_seconds)
         buzzer.off()
+        if index < pulses - 1:
+            sleep(off_seconds)
 
 
 def _animate_page(

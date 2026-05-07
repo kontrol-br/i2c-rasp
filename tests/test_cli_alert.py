@@ -28,7 +28,7 @@ class FakeBuzzer:
         self.events.append("off")
 
 
-def test_show_page_with_alert_keeps_buzzer_on_while_blinking(monkeypatch):
+def test_show_page_with_alert_pulses_buzzer_three_times_then_blinks(monkeypatch):
     sink = FakeSink()
     buzzer = FakeBuzzer()
     sleeps = []
@@ -40,13 +40,13 @@ def test_show_page_with_alert_keeps_buzzer_on_while_blinking(monkeypatch):
 
     cli._show_page_with_alert(sink, buzzer, ["a"], alert=True, page_seconds=1.0, once=False)
 
-    assert buzzer.on_count == 1
-    assert buzzer.off_count == 1
-    assert buzzer.events == ["on", "off"]
+    assert buzzer.on_count == 3
+    assert buzzer.off_count == 4
+    assert buzzer.events == ["on", "off", "on", "off", "on", "off", "off"]
     assert len(sink.calls) >= 4
     assert sink.calls[0][1] is True
     assert any(flash is False for _, flash in sink.calls)
-    assert sum(sleeps) == 2.0
+    assert sum(sleeps) == 2.9
 
 
 def test_show_page_with_alert_once_does_not_sleep():
@@ -56,8 +56,8 @@ def test_show_page_with_alert_once_does_not_sleep():
     cli._show_page_with_alert(sink, buzzer, ["a"], alert=True, page_seconds=1.0, once=True)
 
     assert sink.calls == [(("a",), True)]
-    assert buzzer.on_count == 1
-    assert buzzer.off_count == 1
+    assert buzzer.on_count == 3
+    assert buzzer.off_count == 4
 
 
 def test_show_page_without_alert_forces_buzzer_off(monkeypatch):
@@ -223,3 +223,14 @@ def test_buzzer_debug_pin_override_applies_to_raw_debug(monkeypatch):
     cli._run_buzzer_debug(BuzzerConfig(gpio_pin=18), "raw-low", 1.0, gpio_pin=24)
 
     assert raw_calls == [(24, False, 1.0)]
+
+
+def test_pulse_buzzer_sends_three_short_pulses(monkeypatch):
+    buzzer = FakeBuzzer()
+    sleeps = []
+    monkeypatch.setattr(cli, "sleep", sleeps.append)
+
+    cli._pulse_buzzer(buzzer, pulses=3, on_seconds=0.2, off_seconds=0.15)
+
+    assert buzzer.events == ["on", "off", "on", "off", "on", "off"]
+    assert sleeps == [0.2, 0.15, 0.2, 0.15, 0.2]

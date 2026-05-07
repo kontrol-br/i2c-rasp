@@ -199,7 +199,7 @@ Interpretacao rapida:
 - Cada metrica principal fica em sua propria tela: **CPU, Memoria, Interfaces, Storage e Temperatura**.
 - Quando um limite e atingido, a pagina correspondente entra em modo flash.
 - CPU, Memoria, Storage e Temperatura disparam alerta individual por tela.
-- Se o buzzer estiver habilitado, ele fica ligado durante toda a exibicao da pagina em alerta enquanto a tela continua piscando; fora dos momentos de alerta, o GPIO do buzzer fica como entrada flutuante.
+- Se o buzzer estiver habilitado, cada pagina em alerta dispara **3 pulsos curtos** no inicio da exibicao; a tela continua piscando durante a pagina alarmada e, fora dos momentos de alerta, o GPIO do buzzer fica como entrada flutuante.
 
 ### Recursos visuais do perfil ST7735
 
