@@ -156,6 +156,36 @@ active_high = false
 
 Ao iniciar, o log mostra a configuracao efetivamente carregada do buzzer. Se o log nao mostrar o GPIO, `mode` ou `active_high` esperados, o servico provavelmente esta lendo outro arquivo de configuracao.
 
+### Debug local do buzzer no Raspberry Pi
+
+Os logs sao enviados para stdout/stderr. Quando o app roda via systemd, veja os logs no `journalctl` usando o nome real do servico instalado, por exemplo:
+
+```bash
+sudo journalctl -u i2c-rasp -n 100 --no-pager
+sudo journalctl -u i2c-rasp -f
+```
+
+Se o nome do servico for diferente, liste as unidades relacionadas:
+
+```bash
+systemctl list-units '*i2c*' '*rasp*'
+```
+
+Para isolar o problema do ciclo normal de metricas/display, rode o modo de debug do buzzer diretamente no Raspberry Pi com o mesmo arquivo TOML usado pelo servico:
+
+```bash
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug off --buzzer-debug-seconds 10
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug on --buzzer-debug-seconds 3
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug pulse --buzzer-debug-seconds 10
+```
+
+Interpretacao rapida:
+
+- Se `--buzzer-debug off` **nao** silenciar, teste inverter `active_high` no TOML e rode o comando novamente.
+- Se `active_high = true` e `active_high = false` falharem no `off`, confira se o fio esta no GPIO correto e se outro recurso esta usando o mesmo pino.
+- Se `--buzzer-debug on` e `--buzzer-debug off` parecem invertidos, a polaridade correta do modulo e a oposta da configurada.
+- Se o servico apita mas o debug manual nao apita, compare o caminho do `--config` no unit file do systemd com o arquivo editado.
+
 ## Comportamento das telas
 
 - Cada metrica principal fica em sua propria tela: **CPU, Memoria, Interfaces, Storage e Temperatura**.

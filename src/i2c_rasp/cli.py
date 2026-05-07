@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from i2c_rasp.alerting import evaluate_page_alerts
 from i2c_rasp.buzzer import build_buzzer
-from i2c_rasp.config import HostConfig, load_config
+from i2c_rasp.config import BuzzerConfig, HostConfig, load_config
 from i2c_rasp.display import SSD1306Sink, ST7735Sink, TerminalSink
 from i2c_rasp.render import RenderedPage, render_pages
 from i2c_rasp.scrape import MetricsScraper, ScrapeError
@@ -29,9 +29,24 @@ def main() -> None:
         action="store_true",
         help="Forca saida no terminal em vez do OLED.",
     )
+    parser.add_argument(
+        "--buzzer-debug",
+        choices=("off", "on", "pulse"),
+        help="Testa somente o buzzer e encerra: off mantem inativo, on liga, pulse alterna.",
+    )
+    parser.add_argument(
+        "--buzzer-debug-seconds",
+        type=float,
+        default=5.0,
+        help="Duracao do teste --buzzer-debug, em segundos.",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
+    if args.buzzer_debug:
+        _run_buzzer_debug(config.buzzer, args.buzzer_debug, args.buzzer_debug_seconds)
+        return
+
     hosts = _resolve_hosts(config.hosts, args.host, args.port, args.url)
     scrapers = {
         host.name: MetricsScraper(host.metrics_url, config.scrape.timeout_seconds)
@@ -102,6 +117,51 @@ def main() -> None:
     finally:
         buzzer.close()
         sink.close()
+
+
+def _run_buzzer_debug(config: BuzzerConfig, action: str, seconds: float) -> None:
+    print(
+        "DEBUG buzzer: "
+        f"action={action}, seconds={seconds}, enabled={config.enabled}, "
+        f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}, "
+        f"frequency_hz={config.frequency_hz}, duty_cycle={config.duty_cycle}.",
+        flush=True,
+    )
+    force_enabled = action in {"on", "pulse"}
+    buzzer = build_buzzer(BuzzerConfig(**{**config.__dict__, "enabled": force_enabled}))
+    try:
+        _run_buzzer_debug_action(buzzer, action, seconds)
+    finally:
+        buzzer.close()
+        print("DEBUG buzzer: finalizado; comando off/close enviado.", flush=True)
+
+
+def _run_buzzer_debug_action(buzzer, action: str, seconds: float) -> None:
+    duration = max(0.0, seconds)
+    if action == "off":
+        buzzer.off()
+        sleep(duration)
+        return
+
+    if action == "on":
+        buzzer.on()
+        sleep(duration)
+        return
+
+    elapsed = 0.0
+    buzzer_is_on = False
+    while elapsed < duration:
+        if buzzer_is_on:
+            buzzer.off()
+            buzzer_is_on = False
+        else:
+            buzzer.on()
+            buzzer_is_on = True
+        step = min(0.5, duration - elapsed)
+        sleep(step)
+        elapsed += step
+
+    buzzer.off()
 
 
 def _install_shutdown_handlers() -> None:
