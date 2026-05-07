@@ -77,8 +77,7 @@ def main() -> None:
 
     hosts = _resolve_hosts(config.hosts, args.host, args.port, args.url)
     scrapers = {
-        host.name: MetricsScraper(host.metrics_url, config.scrape.timeout_seconds)
-        for host in hosts
+        host.name: MetricsScraper(host.metrics_url, config.scrape.timeout_seconds) for host in hosts
     }
     builders = {host.name: SnapshotBuilder(config.interfaces.include) for host in hosts}
 
@@ -179,9 +178,7 @@ def _run_buzzer_debug(
         return
 
     force_enabled = action in {"on", "pulse"}
-    buzzer = build_buzzer(
-        _replace_buzzer_config(effective_config, enabled=force_enabled)
-    )
+    buzzer = build_buzzer(_replace_buzzer_config(effective_config, enabled=force_enabled))
     try:
         _run_buzzer_debug_action(buzzer, action, seconds)
     finally:
@@ -193,7 +190,9 @@ def _replace_buzzer_config(
     config: BuzzerConfig,
     **overrides,
 ) -> BuzzerConfig:
-    return BuzzerConfig(**{**config.__dict__, **{k: v for k, v in overrides.items() if v is not None}})
+    return BuzzerConfig(
+        **{**config.__dict__, **{k: v for k, v in overrides.items() if v is not None}}
+    )
 
 
 def _run_buzzer_raw_debug(gpio_pin: int, high: bool, seconds: float) -> None:
@@ -312,7 +311,6 @@ def _show_page_with_alert(
             off_seconds=ALERT_BUZZER_OFF_SECONDS,
         )
         if once:
-            buzzer.on()
             sink.show_page(page, flash=True, frame=0)
             return
         _animate_alert_page(sink, buzzer, page, total_seconds)
@@ -345,6 +343,14 @@ def _animate_page(
         sleep(step)
         elapsed += step
         frame += 1
+
+
+def _animate_alert_page(sink, buzzer, page: list[str], total_seconds: float) -> None:
+    # Mantem o servico no ciclo normal depois dos pulsos sonoros iniciais.
+    # Sem esta rotina, a primeira tela em alerta chamava uma funcao inexistente,
+    # gerando excecao, reinicio pelo systemd e retorno ao autoteste inicial.
+    _ = buzzer
+    _animate_page(sink, page, total_seconds, flash=True, flash_blink=True)
 
 
 def _build_sink(width: int, height: int, oled_config, force_terminal: bool):
