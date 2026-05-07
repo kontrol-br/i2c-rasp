@@ -95,6 +95,7 @@ temperature_celsius = 75
 
 [buzzer]
 enabled = false
+# Mesmo com enabled=false, o app tenta manter este GPIO em estado inativo.
 # gpiozero usa numeracao BCM: GPIO18 fica no pino fisico 12 do Raspberry Pi.
 gpio_pin = 18
 # "active" para buzzers ativos; "pwm" para buzzers passivos/piezo.
@@ -116,7 +117,9 @@ Pontos importantes para a ligacao do modulo buzzer:
 
 - A configuracao `gpio_pin` usa a numeracao **BCM** do `gpiozero`, nao o numero fisico do conector. Portanto `gpio_pin = 18` significa **GPIO18 / pino fisico 12**. Se o fio foi colocado no **pino fisico 18**, configure `gpio_pin = 24` ou mova o fio para o pino fisico 12.
 - Modulos com VCC em 5V precisam ter **GND comum** com o Raspberry Pi. O pino de sinal deve ir ao GPIO; nao injete 5V diretamente no GPIO.
-- Se o modulo for um buzzer **ativo**, deixe `mode = "active"`. Se ele for acionado em nivel baixo por transistor, use `active_high = false`.
+- Se o modulo for um buzzer **ativo**, deixe `mode = "active"`. Se ele for acionado em nivel baixo por transistor, use `active_high = false`; quando `active_high` fica invertido, o comando `off()` mantem o sinal no nivel que liga o modulo e o buzzer pode apitar direto.
+- Com `enabled = false`, o aplicativo nao dispara alertas sonoros, mas ainda inicializa o GPIO configurado e o mantem em estado inativo. Isso evita que modulos active-low apitem por ficarem sem nivel definido enquanto o servico esta rodando.
+- Em paradas/reinicios do servico, o aplicativo trata `SIGTERM`/`SIGINT` e fecha o GPIO para forcar o buzzer desligado antes de sair.
 - Se o som for apenas um ruido baixo/pulsante, o modulo provavelmente e **passivo/piezo** e precisa de onda PWM. Nesse caso use `mode = "pwm"`, comece com `frequency_hz = 2000` e ajuste entre 1000 e 4000 Hz.
 - No perfil ST7735, o pino fisico 18 ja e sugerido para `DC` do display (`GPIO24`), entao evite compartilhar esse GPIO com o buzzer.
 
@@ -142,12 +145,57 @@ mode = "active"
 active_high = false
 ```
 
+Exemplo para silenciar completamente um modulo active-low, mantendo o pino em nivel inativo enquanto o servico roda:
+
+```toml
+[buzzer]
+enabled = false
+gpio_pin = 18
+active_high = false
+```
+
+Ao iniciar, o log mostra a configuracao efetivamente carregada do buzzer. Se o log nao mostrar o GPIO, `mode` ou `active_high` esperados, o servico provavelmente esta lendo outro arquivo de configuracao.
+
+### Debug local do buzzer no Raspberry Pi
+
+Os logs sao enviados para stdout/stderr. Quando o app roda via systemd, veja os logs no `journalctl` usando o nome real do servico instalado, por exemplo:
+
+```bash
+sudo journalctl -u i2c-rasp -n 100 --no-pager
+sudo journalctl -u i2c-rasp -f
+```
+
+Se o nome do servico for diferente, liste as unidades relacionadas:
+
+```bash
+systemctl list-units '*i2c*' '*rasp*'
+```
+
+Para isolar o problema do ciclo normal de metricas/display, rode o modo de debug do buzzer diretamente no Raspberry Pi com o mesmo arquivo TOML usado pelo servico:
+
+```bash
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug off --buzzer-debug-seconds 10
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug on --buzzer-debug-seconds 3
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug pulse --buzzer-debug-seconds 10
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-low --buzzer-debug-seconds 10
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-high --buzzer-debug-seconds 10
+```
+
+Interpretacao rapida:
+
+- O log `Buzzer habilitado: GPIO=18, mode=pwm, active_high=False` confirma que o servico esta lendo a secao `[buzzer]` e que `enabled = true`; se isso nao era esperado, confira o arquivo passado em `ExecStart`.
+- Se `--buzzer-debug off` **nao** silenciar, teste inverter `active_high` no TOML e rode o comando novamente.
+- Se `active_high = true` e `active_high = false` falharem no `off`, use `raw-low` e `raw-high`: eles ignoram `active_high` e colocam o GPIO fisicamente em nivel baixo/alto. O nivel que silenciar o modulo indica a polaridade eletrica correta.
+- Se `raw-low` e `raw-high` nao mudarem o som, confira se o fio esta no GPIO correto, se outro recurso esta usando o mesmo pino, ou se o modulo buzzer esta ligado de forma que fica alimentado independentemente do GPIO.
+- Se `--buzzer-debug on` e `--buzzer-debug off` parecem invertidos, a polaridade correta do modulo e a oposta da configurada.
+- Se o servico apita mas o debug manual nao apita, compare o caminho do `--config` no unit file do systemd com o arquivo editado.
+
 ## Comportamento das telas
 
 - Cada metrica principal fica em sua propria tela: **CPU, Memoria, Interfaces, Storage e Temperatura**.
 - Quando um limite e atingido, a pagina correspondente entra em modo flash.
 - CPU, Memoria, Storage e Temperatura disparam alerta individual por tela.
-- Se o buzzer estiver habilitado, ele toca enquanto a pagina em alerta estiver ativa.
+- Se o buzzer estiver habilitado, ele pulsa junto com o flash enquanto a pagina em alerta estiver ativa, em vez de ficar continuamente ligado.
 
 ### Recursos visuais do perfil ST7735
 
