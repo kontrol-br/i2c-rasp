@@ -312,9 +312,10 @@ def _show_page_with_alert(
             off_seconds=ALERT_BUZZER_OFF_SECONDS,
         )
         if once:
+            buzzer.on()
             sink.show_page(page, flash=True, frame=0)
             return
-        _animate_page(sink, page, total_seconds, flash=True, flash_blink=True)
+        _animate_alert_page(sink, buzzer, page, total_seconds)
     finally:
         buzzer.off()
 
