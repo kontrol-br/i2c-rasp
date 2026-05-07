@@ -177,12 +177,16 @@ Para isolar o problema do ciclo normal de metricas/display, rode o modo de debug
 python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug off --buzzer-debug-seconds 10
 python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug on --buzzer-debug-seconds 3
 python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug pulse --buzzer-debug-seconds 10
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-low --buzzer-debug-seconds 10
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-high --buzzer-debug-seconds 10
 ```
 
 Interpretacao rapida:
 
+- O log `Buzzer habilitado: GPIO=18, mode=pwm, active_high=False` confirma que o servico esta lendo a secao `[buzzer]` e que `enabled = true`; se isso nao era esperado, confira o arquivo passado em `ExecStart`.
 - Se `--buzzer-debug off` **nao** silenciar, teste inverter `active_high` no TOML e rode o comando novamente.
-- Se `active_high = true` e `active_high = false` falharem no `off`, confira se o fio esta no GPIO correto e se outro recurso esta usando o mesmo pino.
+- Se `active_high = true` e `active_high = false` falharem no `off`, use `raw-low` e `raw-high`: eles ignoram `active_high` e colocam o GPIO fisicamente em nivel baixo/alto. O nivel que silenciar o modulo indica a polaridade eletrica correta.
+- Se `raw-low` e `raw-high` nao mudarem o som, confira se o fio esta no GPIO correto, se outro recurso esta usando o mesmo pino, ou se o modulo buzzer esta ligado de forma que fica alimentado independentemente do GPIO.
 - Se `--buzzer-debug on` e `--buzzer-debug off` parecem invertidos, a polaridade correta do modulo e a oposta da configurada.
 - Se o servico apita mas o debug manual nao apita, compare o caminho do `--config` no unit file do systemd com o arquivo editado.
 

@@ -1,3 +1,6 @@
+import sys
+from types import ModuleType
+
 from i2c_rasp import cli
 from i2c_rasp.config import BuzzerConfig
 
@@ -143,3 +146,53 @@ def test_buzzer_debug_forces_enabled_only_for_audible_tests(monkeypatch):
     cli._run_buzzer_debug(BuzzerConfig(enabled=False), "on", 0)
 
     assert [config.enabled for config in built_configs] == [False, True]
+
+
+def test_buzzer_raw_debug_drives_physical_level_and_closes(monkeypatch):
+    devices = []
+
+    class FakeRawOutputDevice:
+        def __init__(self, pin, active_high=True, initial_value=False):
+            self.pin = pin
+            self.active_high = active_high
+            self.initial_value = initial_value
+            self.value = initial_value
+            self.close_count = 0
+            devices.append(self)
+
+        def close(self):
+            self.close_count += 1
+
+    module = ModuleType("gpiozero")
+    module.DigitalOutputDevice = FakeRawOutputDevice
+    monkeypatch.setitem(sys.modules, "gpiozero", module)
+    sleeps = []
+    monkeypatch.setattr(cli, "sleep", sleeps.append)
+
+    cli._run_buzzer_raw_debug(18, high=False, seconds=2.0)
+    cli._run_buzzer_raw_debug(18, high=True, seconds=3.0)
+
+    assert [(device.pin, device.active_high, device.initial_value, device.value) for device in devices] == [
+        (18, True, False, 0),
+        (18, True, True, 1),
+    ]
+    assert [device.close_count for device in devices] == [1, 1]
+    assert sleeps == [2.0, 3.0]
+
+
+def test_buzzer_debug_raw_actions_skip_normal_buzzer_builder(monkeypatch):
+    raw_calls = []
+
+    def fake_raw_debug(gpio_pin, high, seconds):
+        raw_calls.append((gpio_pin, high, seconds))
+
+    def fail_build_buzzer(config):
+        raise AssertionError("raw debug must not use build_buzzer")
+
+    monkeypatch.setattr(cli, "_run_buzzer_raw_debug", fake_raw_debug)
+    monkeypatch.setattr(cli, "build_buzzer", fail_build_buzzer)
+
+    cli._run_buzzer_debug(BuzzerConfig(gpio_pin=24), "raw-low", 4.0)
+    cli._run_buzzer_debug(BuzzerConfig(gpio_pin=24), "raw-high", 5.0)
+
+    assert raw_calls == [(24, False, 4.0), (24, True, 5.0)]

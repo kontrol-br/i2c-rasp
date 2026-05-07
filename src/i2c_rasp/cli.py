@@ -31,8 +31,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--buzzer-debug",
-        choices=("off", "on", "pulse"),
-        help="Testa somente o buzzer e encerra: off mantem inativo, on liga, pulse alterna.",
+        choices=("off", "on", "pulse", "raw-low", "raw-high"),
+        help="Testa somente o buzzer e encerra; raw-low/raw-high ignoram active_high.",
     )
     parser.add_argument(
         "--buzzer-debug-seconds",
@@ -127,6 +127,10 @@ def _run_buzzer_debug(config: BuzzerConfig, action: str, seconds: float) -> None
         f"frequency_hz={config.frequency_hz}, duty_cycle={config.duty_cycle}.",
         flush=True,
     )
+    if action in {"raw-low", "raw-high"}:
+        _run_buzzer_raw_debug(config.gpio_pin, action == "raw-high", seconds)
+        return
+
     force_enabled = action in {"on", "pulse"}
     buzzer = build_buzzer(BuzzerConfig(**{**config.__dict__, "enabled": force_enabled}))
     try:
@@ -134,6 +138,24 @@ def _run_buzzer_debug(config: BuzzerConfig, action: str, seconds: float) -> None
     finally:
         buzzer.close()
         print("DEBUG buzzer: finalizado; comando off/close enviado.", flush=True)
+
+
+def _run_buzzer_raw_debug(gpio_pin: int, high: bool, seconds: float) -> None:
+    from gpiozero import DigitalOutputDevice
+
+    level = "HIGH" if high else "LOW"
+    print(
+        f"DEBUG buzzer RAW: GPIO={gpio_pin} em nivel fisico {level}; "
+        "este teste ignora active_high/mode.",
+        flush=True,
+    )
+    device = DigitalOutputDevice(gpio_pin, active_high=True, initial_value=high)
+    try:
+        device.value = 1 if high else 0
+        sleep(max(0.0, seconds))
+    finally:
+        device.close()
+        print("DEBUG buzzer RAW: GPIO liberado.", flush=True)
 
 
 def _run_buzzer_debug_action(buzzer, action: str, seconds: float) -> None:
