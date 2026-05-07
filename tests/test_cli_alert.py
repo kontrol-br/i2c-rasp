@@ -13,12 +13,15 @@ class FakeBuzzer:
     def __init__(self):
         self.on_count = 0
         self.off_count = 0
+        self.events = []
 
     def on(self):
         self.on_count += 1
+        self.events.append("on")
 
     def off(self):
         self.off_count += 1
+        self.events.append("off")
 
 
 def test_show_page_with_alert_blinks_and_doubles_time(monkeypatch):
@@ -33,8 +36,10 @@ def test_show_page_with_alert_blinks_and_doubles_time(monkeypatch):
 
     cli._show_page_with_alert(sink, buzzer, ["a"], alert=True, page_seconds=1.0, once=False)
 
-    assert buzzer.on_count == 1
-    assert buzzer.off_count == 1
+    assert buzzer.on_count == 4
+    assert buzzer.off_count == 5
+    assert buzzer.events[:4] == ["on", "off", "on", "off"]
+    assert buzzer.events[-1] == "off"
     assert len(sink.calls) >= 4
     assert sink.calls[0][1] is True
     assert any(flash is False for _, flash in sink.calls)
