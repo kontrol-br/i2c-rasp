@@ -66,3 +66,28 @@ spi_rst_pin = 25
 
     assert config.oled.model == "st7735"
     assert config.oled.spi_dc_pin == 24
+
+
+def test_load_config_reports_toml_error_with_line_context(tmp_path) -> None:
+    config_file = tmp_path / "broken.toml"
+    config_file.write_text(
+        """
+[oled]
+model = "st7735"
+spi_invert true
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_config(config_file)
+    except Exception as exc:
+        message = str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("load_config should fail for invalid TOML")
+
+    assert "Erro no TOML" in message
+    assert "linha 4" in message
+    assert "spi_invert true" in message
+    assert "^" in message
+    assert "Esta linha parece nao ter '='" in message

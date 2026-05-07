@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from i2c_rasp.display import OledConfig
+
+
+class ConfigError(ValueError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -91,7 +96,7 @@ def load_config(path: str | Path | None) -> AppConfig:
     if path is None:
         return AppConfig()
 
-    data = tomllib.loads(Path(path).read_text(encoding="utf-8"))
+    data = _load_toml(path)
     host_entries = data.get("hosts", [])
     if not host_entries and "target" in data:
         target = data["target"]
@@ -117,3 +122,45 @@ def load_config(path: str | Path | None) -> AppConfig:
 def _filter_dataclass_kwargs(cls, raw: dict) -> dict:
     allowed = {item.name for item in fields(cls)}
     return {key: value for key, value in raw.items() if key in allowed}
+
+
+def _load_toml(path: str | Path) -> dict:
+    config_path = Path(path)
+    raw = config_path.read_text(encoding="utf-8")
+    try:
+        return tomllib.loads(raw)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(_format_toml_error(config_path, raw, exc)) from exc
+
+
+def _format_toml_error(path: Path, raw: str, exc: tomllib.TOMLDecodeError) -> str:
+    lines = raw.splitlines()
+    lineno = getattr(exc, "lineno", None)
+    colno = getattr(exc, "colno", None)
+    if lineno is None or colno is None:
+        match = re.search(r"\(at line (\d+), column (\d+)\)", str(exc))
+        if match:
+            lineno = int(match.group(1))
+            colno = int(match.group(2))
+    location = f"linha {lineno}, coluna {colno}" if lineno and colno else "local desconhecido"
+    message = f"Erro no TOML {path} ({location}): {str(exc)}"
+
+    if not lineno or lineno < 1 or lineno > len(lines):
+        return message
+
+    line = lines[lineno - 1]
+    pointer = ""
+    if colno and colno > 0:
+        pointer = "\n" + " " * (colno - 1) + "^"
+
+    hints = []
+    stripped = line.strip()
+    if stripped and not stripped.startswith(("#", "[")) and "=" not in stripped:
+        hints.append("Esta linha parece nao ter '='. Em TOML, comentarios precisam comecar com '#'.")
+    if "//" in line:
+        hints.append("TOML nao aceita comentario com '//'; use '#'.")
+    if ":" in line and "=" not in line:
+        hints.append("TOML usa 'chave = valor', nao 'chave: valor'.")
+
+    hint_text = "" if not hints else "\nDica: " + " ".join(hints)
+    return f"{message}\n{lineno:>4}: {line}{pointer}{hint_text}"
