@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from i2c_rasp.alerting import evaluate_page_alerts
 from i2c_rasp.buzzer import build_buzzer
-from i2c_rasp.config import BuzzerConfig, HostConfig, load_config
+from i2c_rasp.config import BuzzerConfig, ConfigError, HostConfig, load_config
 from i2c_rasp.display import SSD1306Sink, ST7735Sink, TerminalSink
 from i2c_rasp.render import RenderedPage, render_pages
 from i2c_rasp.scrape import MetricsScraper, ScrapeError
@@ -45,11 +45,24 @@ def main() -> None:
         type=int,
         help="Sobrescreve buzzer.gpio_pin apenas para --buzzer-debug.",
     )
+    parser.add_argument(
+        "--check-config",
+        action="store_true",
+        help="Valida o arquivo TOML e encerra sem iniciar display, scraping ou GPIO.",
+    )
     args = parser.parse_args()
 
-    config = load_config(args.config)
+    try:
+        config = load_config(args.config)
+    except ConfigError as exc:
+        print(str(exc), flush=True)
+        raise SystemExit(2) from exc
+
     print(f"Config carregada: {args.config or '<padrao>'}; codigo={__file__}", flush=True)
     _log_display_gpio_usage(config.oled)
+    if args.check_config:
+        print("Configuracao valida.", flush=True)
+        return
     if args.buzzer_debug:
         _run_buzzer_debug(
             config.buzzer,

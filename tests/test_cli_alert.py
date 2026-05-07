@@ -28,7 +28,7 @@ class FakeBuzzer:
         self.events.append("off")
 
 
-def test_show_page_with_alert_blinks_and_doubles_time(monkeypatch):
+def test_show_page_with_alert_keeps_buzzer_on_while_blinking(monkeypatch):
     sink = FakeSink()
     buzzer = FakeBuzzer()
     sleeps = []
@@ -40,10 +40,9 @@ def test_show_page_with_alert_blinks_and_doubles_time(monkeypatch):
 
     cli._show_page_with_alert(sink, buzzer, ["a"], alert=True, page_seconds=1.0, once=False)
 
-    assert buzzer.on_count == 4
-    assert buzzer.off_count == 5
-    assert buzzer.events[:4] == ["on", "off", "on", "off"]
-    assert buzzer.events[-1] == "off"
+    assert buzzer.on_count == 1
+    assert buzzer.off_count == 1
+    assert buzzer.events == ["on", "off"]
     assert len(sink.calls) >= 4
     assert sink.calls[0][1] is True
     assert any(flash is False for _, flash in sink.calls)

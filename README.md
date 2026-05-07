@@ -199,7 +199,7 @@ Interpretacao rapida:
 - Cada metrica principal fica em sua propria tela: **CPU, Memoria, Interfaces, Storage e Temperatura**.
 - Quando um limite e atingido, a pagina correspondente entra em modo flash.
 - CPU, Memoria, Storage e Temperatura disparam alerta individual por tela.
-- Se o buzzer estiver habilitado, ele pulsa junto com o flash enquanto a pagina em alerta estiver ativa; fora dos momentos de alerta, o GPIO do buzzer fica como entrada flutuante.
+- Se o buzzer estiver habilitado, ele fica ligado durante toda a exibicao da pagina em alerta enquanto a tela continua piscando; fora dos momentos de alerta, o GPIO do buzzer fica como entrada flutuante.
 
 ### Recursos visuais do perfil ST7735
 
@@ -217,6 +217,15 @@ Instalacao:
 ```bash
 pip install -e .
 ```
+
+Validar o TOML antes de iniciar display/GPIO:
+
+```bash
+python -m i2c_rasp.cli --config config.example.toml --check-config
+nl -ba config.example.toml | sed -n '22,30p'
+```
+
+Se houver erro como `Expected '=' after a key in a key/value pair`, confira a linha indicada; comentarios em TOML precisam comecar com `#`, e atribuicoes precisam usar `chave = valor`.
 
 Rodar normalmente:
 
