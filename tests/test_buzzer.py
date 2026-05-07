@@ -143,17 +143,21 @@ def test_gpio_buzzer_pwm_mode_drives_passive_buzzers_with_tone(monkeypatch):
     assert FakeDigitalInputDevice.instances == []
 
 
-def test_build_buzzer_enabled_does_not_probe_gpio_as_input(monkeypatch):
+def test_build_buzzer_enabled_releases_output_without_input_probe(monkeypatch):
     FakeDigitalBuzzer.instances.clear()
     FakeDigitalInputDevice.instances.clear()
     install_fake_gpiozero(monkeypatch)
 
     buzzer = build_buzzer(BuzzerConfig(enabled=True, gpio_pin=18, active_high=False))
+    buzzer.off()
+    assert FakeDigitalBuzzer.instances == []
+
     buzzer.on()
     buzzer.off()
     buzzer.close()
 
     assert len(FakeDigitalBuzzer.instances) == 1
+    assert FakeDigitalBuzzer.instances[0].close_count == 1
     assert FakeDigitalInputDevice.instances == []
 
 

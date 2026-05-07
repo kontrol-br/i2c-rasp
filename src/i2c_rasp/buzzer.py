@@ -55,8 +55,6 @@ class GpioBuzzer(Buzzer):
         self._config = config
         self._buzzer = None
         self._on_value = config.duty_cycle if config.mode == "pwm" else None
-        self._ensure_device()
-        self.off()
 
     def on(self) -> None:
         self._ensure_device()
@@ -66,14 +64,10 @@ class GpioBuzzer(Buzzer):
         self._buzzer.value = self._on_value
 
     def off(self) -> None:
-        self._ensure_device()
-        self._buzzer.off()
+        self._close_output_device()
 
     def close(self) -> None:
-        if self._buzzer is not None:
-            self._buzzer.off()
-            self._buzzer.close()
-            self._buzzer = None
+        self._close_output_device()
 
     def _ensure_device(self) -> None:
         if self._buzzer is not None:
@@ -90,6 +84,13 @@ class GpioBuzzer(Buzzer):
             active_high=self._config.active_high,
             initial_value=False,
         )
+
+    def _close_output_device(self) -> None:
+        if self._buzzer is None:
+            return
+        self._buzzer.off()
+        self._buzzer.close()
+        self._buzzer = None
 
 
 def _build_pwm_buzzer(config: BuzzerConfig):
@@ -116,7 +117,7 @@ def build_buzzer(config: BuzzerConfig) -> Buzzer:
         print(
             "Buzzer habilitado: "
             f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}. "
-            "O GPIO fica em nivel inativo quando o buzzer esta em off.",
+            "O GPIO e liberado depois de cada pulso para evitar som continuo em off.",
             flush=True,
         )
         return GpioBuzzer(config)
