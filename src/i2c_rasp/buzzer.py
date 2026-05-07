@@ -64,6 +64,7 @@ class GpioBuzzer(Buzzer):
         self._buzzer.value = self._on_value
 
     def off(self) -> None:
+        self._ensure_device()
         self._close_output_device()
 
     def close(self) -> None:
@@ -117,7 +118,7 @@ def build_buzzer(config: BuzzerConfig) -> Buzzer:
         print(
             "Buzzer habilitado: "
             f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}. "
-            "O GPIO e liberado depois de cada pulso para evitar som continuo em off.",
+            "O GPIO e inicializado/desligado no start e liberado em off.",
             flush=True,
         )
         return GpioBuzzer(config)
