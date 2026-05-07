@@ -14,6 +14,30 @@ class Buzzer:
         return
 
 
+class DisabledGpioBuzzer(Buzzer):
+    """Keep the configured GPIO in the inactive state without sounding alerts."""
+
+    def __init__(self, config: BuzzerConfig) -> None:
+        from gpiozero import DigitalOutputDevice
+
+        self._device = DigitalOutputDevice(
+            config.gpio_pin,
+            active_high=config.active_high,
+            initial_value=False,
+        )
+        self.off()
+
+    def on(self) -> None:
+        self.off()
+
+    def off(self) -> None:
+        self._device.off()
+
+    def close(self) -> None:
+        self.off()
+        self._device.close()
+
+
 class GpioBuzzer(Buzzer):
     def __init__(self, config: BuzzerConfig) -> None:
         self._config = config
