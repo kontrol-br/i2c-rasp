@@ -188,7 +188,7 @@ def _run_buzzer_debug_action(buzzer, action: str, seconds: float) -> None:
 
 def _install_shutdown_handlers() -> None:
     def _shutdown(signum, _frame):
-        raise SystemExit(128 + signum)
+        raise SystemExit(0)
 
     signal.signal(signal.SIGTERM, _shutdown)
     signal.signal(signal.SIGINT, _shutdown)

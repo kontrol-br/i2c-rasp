@@ -40,34 +40,43 @@ class DisabledGpioBuzzer(Buzzer):
 
 class GpioBuzzer(Buzzer):
     def __init__(self, config: BuzzerConfig) -> None:
-        if config.mode == "pwm":
-            self._buzzer = _build_pwm_buzzer(config)
-            self._on_value = config.duty_cycle
-            self.off()
-            return
-
-        from gpiozero import Buzzer as GpioZeroBuzzer
-
-        self._buzzer = GpioZeroBuzzer(
-            config.gpio_pin,
-            active_high=config.active_high,
-            initial_value=False,
-        )
-        self._on_value = None
+        self._config = config
+        self._buzzer = None
+        self._on_value = config.duty_cycle if config.mode == "pwm" else None
         self.off()
 
     def on(self) -> None:
+        self._ensure_device()
         if self._on_value is None:
             self._buzzer.on()
             return
         self._buzzer.value = self._on_value
 
     def off(self) -> None:
+        if self._buzzer is None:
+            return
         self._buzzer.off()
+        self._buzzer.close()
+        self._buzzer = None
 
     def close(self) -> None:
         self.off()
-        self._buzzer.close()
+
+    def _ensure_device(self) -> None:
+        if self._buzzer is not None:
+            return
+
+        if self._config.mode == "pwm":
+            self._buzzer = _build_pwm_buzzer(self._config)
+            return
+
+        from gpiozero import Buzzer as GpioZeroBuzzer
+
+        self._buzzer = GpioZeroBuzzer(
+            self._config.gpio_pin,
+            active_high=self._config.active_high,
+            initial_value=False,
+        )
 
 
 def _build_pwm_buzzer(config: BuzzerConfig):
@@ -85,16 +94,16 @@ def build_buzzer(config: BuzzerConfig) -> Buzzer:
     try:
         if not config.enabled:
             print(
-                "Buzzer desabilitado; mantendo GPIO "
-                f"{config.gpio_pin} em estado inativo. "
-                "Se ainda apitar, confira active_high ou o arquivo TOML usado pelo servico.",
+                "Buzzer desabilitado; GPIO "
+                f"{config.gpio_pin} sera liberado/alta impedancia enquanto o servico roda.",
                 flush=True,
             )
-            return DisabledGpioBuzzer(config)
+            return Buzzer()
 
         print(
             "Buzzer habilitado: "
-            f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}.",
+            f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}. "
+            "O GPIO fica liberado quando o buzzer esta em off.",
             flush=True,
         )
         return GpioBuzzer(config)

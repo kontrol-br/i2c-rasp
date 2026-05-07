@@ -94,7 +94,7 @@ def test_gpio_buzzer_uses_bcm_pin_and_polarity_for_active_modules(monkeypatch):
     assert device.active_high is False
     assert device.initial_value is False
     assert device.on_count == 1
-    assert device.off_count == 3
+    assert device.off_count == 1
     assert device.close_count == 1
 
 
@@ -118,14 +118,16 @@ def test_gpio_buzzer_pwm_mode_drives_passive_buzzers_with_tone(monkeypatch):
     device = FakePWMOutputDevice.instances[0]
     assert device.pin == 18
     assert device.frequency == 2500
-    assert device.values == [0, 0, 0.25, 0, 0]
+    assert device.values == [0, 0.25, 0]
     assert device.value == 0
-    assert device.off_count == 3
+    assert device.off_count == 1
     assert device.close_count == 1
 
 
-def test_build_buzzer_disabled_holds_configured_gpio_inactive(monkeypatch):
+def test_build_buzzer_disabled_releases_configured_gpio(monkeypatch):
     FakeDigitalOutputDevice.instances.clear()
+    FakeDigitalBuzzer.instances.clear()
+    FakePWMOutputDevice.instances.clear()
     install_fake_gpiozero(monkeypatch)
 
     buzzer = build_buzzer(BuzzerConfig(enabled=False, gpio_pin=18, active_high=False))
@@ -133,10 +135,7 @@ def test_build_buzzer_disabled_holds_configured_gpio_inactive(monkeypatch):
     buzzer.off()
     buzzer.close()
 
-    device = FakeDigitalOutputDevice.instances[0]
-    assert type(buzzer).__name__ == "DisabledGpioBuzzer"
-    assert device.pin == 18
-    assert device.active_high is False
-    assert device.initial_value is False
-    assert device.off_count == 4
-    assert device.close_count == 1
+    assert type(buzzer).__name__ == "Buzzer"
+    assert FakeDigitalOutputDevice.instances == []
+    assert FakeDigitalBuzzer.instances == []
+    assert FakePWMOutputDevice.instances == []
