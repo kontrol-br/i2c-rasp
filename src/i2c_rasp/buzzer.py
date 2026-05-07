@@ -14,6 +14,30 @@ class Buzzer:
         return
 
 
+class DisabledGpioBuzzer(Buzzer):
+    """Keep the configured GPIO in the inactive state without sounding alerts."""
+
+    def __init__(self, config: BuzzerConfig) -> None:
+        from gpiozero import DigitalOutputDevice
+
+        self._device = DigitalOutputDevice(
+            config.gpio_pin,
+            active_high=config.active_high,
+            initial_value=False,
+        )
+        self.off()
+
+    def on(self) -> None:
+        self.off()
+
+    def off(self) -> None:
+        self._device.off()
+
+    def close(self) -> None:
+        self.off()
+        self._device.close()
+
+
 class GpioBuzzer(Buzzer):
     def __init__(self, config: BuzzerConfig) -> None:
         if config.mode == "pwm":
@@ -58,10 +82,21 @@ def _build_pwm_buzzer(config: BuzzerConfig):
 
 
 def build_buzzer(config: BuzzerConfig) -> Buzzer:
-    if not config.enabled:
-        return Buzzer()
-
     try:
+        if not config.enabled:
+            print(
+                "Buzzer desabilitado; mantendo GPIO "
+                f"{config.gpio_pin} em estado inativo. "
+                "Se ainda apitar, confira active_high ou o arquivo TOML usado pelo servico.",
+                flush=True,
+            )
+            return DisabledGpioBuzzer(config)
+
+        print(
+            "Buzzer habilitado: "
+            f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}.",
+            flush=True,
+        )
         return GpioBuzzer(config)
     except Exception as exc:
         print(f"Buzzer indisponivel ({exc}); seguindo sem alarme sonoro.", flush=True)
