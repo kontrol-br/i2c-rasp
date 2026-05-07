@@ -154,7 +154,7 @@ gpio_pin = 18
 active_high = false
 ```
 
-Ao iniciar, o log mostra a configuracao efetivamente carregada do buzzer. Se o log nao mostrar o GPIO, `mode` ou `active_high` esperados, o servico provavelmente esta lendo outro arquivo de configuracao.
+Ao iniciar, o log mostra o arquivo de configuracao, o caminho do codigo Python carregado e a configuracao efetivamente carregada do buzzer. Se o log nao mostrar o GPIO, `mode`, `active_high` ou caminho de codigo esperados, o servico provavelmente esta lendo outro arquivo de configuracao ou uma instalacao antiga.
 
 ### Debug local do buzzer no Raspberry Pi
 
@@ -179,6 +179,9 @@ python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug on --buzz
 python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug pulse --buzzer-debug-seconds 10
 python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-low --buzzer-debug-seconds 10
 python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-high --buzzer-debug-seconds 10
+# Para testar outro GPIO sem editar o TOML, por exemplo GPIO24/pino fisico 18:
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-low --buzzer-debug-pin 24 --buzzer-debug-seconds 10
+python -m i2c_rasp.cli --config /caminho/do/config.toml --buzzer-debug raw-high --buzzer-debug-pin 24 --buzzer-debug-seconds 10
 ```
 
 Interpretacao rapida:
@@ -187,6 +190,7 @@ Interpretacao rapida:
 - Se `--buzzer-debug off` **nao** silenciar, teste inverter `active_high` no TOML e rode o comando novamente.
 - Se `active_high = true` e `active_high = false` falharem no `off`, use `raw-low` e `raw-high`: eles ignoram `active_high` e colocam o GPIO fisicamente em nivel baixo/alto. O nivel que silenciar o modulo indica a polaridade eletrica correta.
 - Se `raw-low` e `raw-high` acionarem o buzzer, mas ele silenciar quando o processo termina/reinicia, isso indica que o seu modulo precisa do GPIO liberado/alta impedancia para ficar quieto. Nesse caso use `enabled = false` para silenciar ou deixe `enabled = true` apenas se aceitar som durante paginas em alerta; quando estiver em `off`, o app libera o GPIO.
+- Se `enabled = false` e o buzzer ainda liga junto com o servico, suspeite de outro pino inicializado pelo display. No perfil ST7735, `spi_dc_pin = 24` usa GPIO24/pino fisico 18; se o fio do buzzer estiver nesse pino, o display vai aciona-lo mesmo com `[buzzer]` desabilitado. Teste com `--buzzer-debug-pin 24` e, se confirmar, mova o fio do buzzer para um GPIO livre ou altere o pino DC do display conforme a fiacao real.
 - Se `--buzzer-debug on` e `--buzzer-debug off` parecem invertidos, a polaridade correta do modulo e a oposta da configurada.
 - Se o servico apita mas o debug manual nao apita, compare o caminho do `--config` no unit file do systemd com o arquivo editado.
 

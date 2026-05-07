@@ -40,11 +40,23 @@ def main() -> None:
         default=5.0,
         help="Duracao do teste --buzzer-debug, em segundos.",
     )
+    parser.add_argument(
+        "--buzzer-debug-pin",
+        type=int,
+        help="Sobrescreve buzzer.gpio_pin apenas para --buzzer-debug.",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
+    print(f"Config carregada: {args.config or '<padrao>'}; codigo={__file__}", flush=True)
+    _log_display_gpio_usage(config.oled)
     if args.buzzer_debug:
-        _run_buzzer_debug(config.buzzer, args.buzzer_debug, args.buzzer_debug_seconds)
+        _run_buzzer_debug(
+            config.buzzer,
+            args.buzzer_debug,
+            args.buzzer_debug_seconds,
+            gpio_pin=args.buzzer_debug_pin,
+        )
         return
 
     hosts = _resolve_hosts(config.hosts, args.host, args.port, args.url)
@@ -119,25 +131,53 @@ def main() -> None:
         sink.close()
 
 
-def _run_buzzer_debug(config: BuzzerConfig, action: str, seconds: float) -> None:
+def _log_display_gpio_usage(oled_config) -> None:
+    if oled_config.enabled and oled_config.model.lower() == "st7735":
+        print(
+            "Display ST7735 usando GPIOs: "
+            f"DC={oled_config.spi_dc_pin}, RST={oled_config.spi_rst_pin}. "
+            "Nao conecte o buzzer nesses GPIOs.",
+            flush=True,
+        )
+
+
+def _run_buzzer_debug(
+    config: BuzzerConfig,
+    action: str,
+    seconds: float,
+    *,
+    gpio_pin: int | None = None,
+) -> None:
+    effective_config = _replace_buzzer_config(config, gpio_pin=gpio_pin)
+    pin_source = "CLI" if gpio_pin is not None else "config"
     print(
         "DEBUG buzzer: "
-        f"action={action}, seconds={seconds}, enabled={config.enabled}, "
-        f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}, "
-        f"frequency_hz={config.frequency_hz}, duty_cycle={config.duty_cycle}.",
+        f"action={action}, seconds={seconds}, enabled={effective_config.enabled}, "
+        f"GPIO={effective_config.gpio_pin} ({pin_source}), "
+        f"mode={effective_config.mode}, active_high={effective_config.active_high}, "
+        f"frequency_hz={effective_config.frequency_hz}, duty_cycle={effective_config.duty_cycle}.",
         flush=True,
     )
     if action in {"raw-low", "raw-high"}:
-        _run_buzzer_raw_debug(config.gpio_pin, action == "raw-high", seconds)
+        _run_buzzer_raw_debug(effective_config.gpio_pin, action == "raw-high", seconds)
         return
 
     force_enabled = action in {"on", "pulse"}
-    buzzer = build_buzzer(BuzzerConfig(**{**config.__dict__, "enabled": force_enabled}))
+    buzzer = build_buzzer(
+        _replace_buzzer_config(effective_config, enabled=force_enabled)
+    )
     try:
         _run_buzzer_debug_action(buzzer, action, seconds)
     finally:
         buzzer.close()
         print("DEBUG buzzer: finalizado; comando off/close enviado.", flush=True)
+
+
+def _replace_buzzer_config(
+    config: BuzzerConfig,
+    **overrides,
+) -> BuzzerConfig:
+    return BuzzerConfig(**{**config.__dict__, **{k: v for k, v in overrides.items() if v is not None}})
 
 
 def _run_buzzer_raw_debug(gpio_pin: int, high: bool, seconds: float) -> None:

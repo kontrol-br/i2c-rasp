@@ -196,3 +196,31 @@ def test_buzzer_debug_raw_actions_skip_normal_buzzer_builder(monkeypatch):
     cli._run_buzzer_debug(BuzzerConfig(gpio_pin=24), "raw-high", 5.0)
 
     assert raw_calls == [(24, False, 4.0), (24, True, 5.0)]
+
+
+def test_buzzer_debug_pin_override_replaces_config_pin(monkeypatch):
+    built_configs = []
+
+    class DebugBuzzer(FakeBuzzer):
+        def close(self):
+            self.events.append("close")
+
+    def fake_build_buzzer(config):
+        built_configs.append(config)
+        return DebugBuzzer()
+
+    monkeypatch.setattr(cli, "build_buzzer", fake_build_buzzer)
+    monkeypatch.setattr(cli, "sleep", lambda seconds: None)
+
+    cli._run_buzzer_debug(BuzzerConfig(gpio_pin=18), "on", 0, gpio_pin=24)
+
+    assert built_configs[0].gpio_pin == 24
+
+
+def test_buzzer_debug_pin_override_applies_to_raw_debug(monkeypatch):
+    raw_calls = []
+    monkeypatch.setattr(cli, "_run_buzzer_raw_debug", lambda *args: raw_calls.append(args))
+
+    cli._run_buzzer_debug(BuzzerConfig(gpio_pin=18), "raw-low", 1.0, gpio_pin=24)
+
+    assert raw_calls == [(24, False, 1.0)]
