@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import signal
 from datetime import datetime
 from time import sleep
 from zoneinfo import ZoneInfo
@@ -41,64 +42,74 @@ def main() -> None:
     sink = _build_sink(config.display.width, config.display.height, config.oled, args.terminal)
     buzzer = build_buzzer(config.buzzer)
     buzzer.off()
+    _install_shutdown_handlers()
 
-    # Duas coletas por host permitem calcular CPU e throughput de rede na primeira tela.
-    for host in hosts:
-        _prime_host(host, scrapers[host.name], builders[host.name])
-    sleep(min(1.0, config.display.refresh_seconds))
-    sink.run_startup_self_test()
-
-    while True:
+    try:
+        # Duas coletas por host permitem calcular CPU e throughput de rede na primeira tela.
         for host in hosts:
-            try:
-                snapshot = builders[host.name].build(host.name, scrapers[host.name].scrape())
-                pages = render_pages(snapshot, config.display.width, config.display.height)
-                alerts = evaluate_page_alerts(snapshot, config.alert_thresholds)
-            except ScrapeError as exc:
-                pages = [
-                    RenderedPage(
-                        kind="error",
-                        lines=_error_page(
-                            host.name,
-                            str(exc),
-                            config.display.width,
-                            config.display.height,
-                        ),
+            _prime_host(host, scrapers[host.name], builders[host.name])
+        sleep(min(1.0, config.display.refresh_seconds))
+        sink.run_startup_self_test()
+
+        while True:
+            for host in hosts:
+                try:
+                    snapshot = builders[host.name].build(host.name, scrapers[host.name].scrape())
+                    pages = render_pages(snapshot, config.display.width, config.display.height)
+                    alerts = evaluate_page_alerts(snapshot, config.alert_thresholds)
+                except ScrapeError as exc:
+                    pages = [
+                        RenderedPage(
+                            kind="error",
+                            lines=_error_page(
+                                host.name,
+                                str(exc),
+                                config.display.width,
+                                config.display.height,
+                            ),
+                        )
+                    ]
+                    alerts = None
+
+                for page in pages:
+                    flash = bool(
+                        alerts
+                        and (
+                            (page.kind == "cpu" and alerts.cpu)
+                            or (page.kind == "memory" and alerts.memory)
+                            or (page.kind == "storage" and alerts.storage)
+                            or (page.kind == "temperature" and alerts.temperature)
+                        )
                     )
-                ]
-                alerts = None
-
-            for page in pages:
-                flash = bool(
-                    alerts
-                    and (
-                        (page.kind == "cpu" and alerts.cpu)
-                        or (page.kind == "memory" and alerts.memory)
-                        or (page.kind == "storage" and alerts.storage)
-                        or (page.kind == "temperature" and alerts.temperature)
+                    _show_page_with_alert(
+                        sink=sink,
+                        buzzer=buzzer,
+                        page=page.lines,
+                        alert=flash,
+                        page_seconds=config.display.page_seconds,
+                        once=args.once,
                     )
-                )
-                _show_page_with_alert(
-                    sink=sink,
-                    buzzer=buzzer,
-                    page=page.lines,
-                    alert=flash,
-                    page_seconds=config.display.page_seconds,
-                    once=args.once,
-                )
 
-        _show_rainbow_cycle(sink, config.display.page_seconds, args.once)
+            _show_rainbow_cycle(sink, config.display.page_seconds, args.once)
 
-        title, time_text, date_text = _clock_content()
-        sink.show_clock(title, time_text, date_text)
-        if not args.once:
-            sleep(config.display.page_seconds)
-        if args.once:
-            break
-        sleep(config.display.refresh_seconds)
+            title, time_text, date_text = _clock_content()
+            sink.show_clock(title, time_text, date_text)
+            if not args.once:
+                sleep(config.display.page_seconds)
+            if args.once:
+                break
+            sleep(config.display.refresh_seconds)
+    finally:
+        buzzer.close()
+        sink.close()
 
-    sink.close()
-    buzzer.close()
+
+def _install_shutdown_handlers() -> None:
+    def _shutdown(signum, _frame):
+        raise SystemExit(128 + signum)
+
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
 
 
 def _resolve_hosts(
@@ -154,13 +165,36 @@ def _show_page_with_alert(
         return
 
     total_seconds = page_seconds * 2.0
-    buzzer.on()
     try:
         if once:
+            buzzer.on()
             sink.show_page(page, flash=True, frame=0)
             return
-        _animate_page(sink, page, total_seconds, flash=True, flash_blink=True)
+        _animate_alert_page(sink, buzzer, page, total_seconds)
     finally:
+        buzzer.off()
+
+
+def _animate_alert_page(sink, buzzer, page: list[str], total_seconds: float) -> None:
+    elapsed = 0.0
+    frame = 0
+    buzzer_is_on = False
+    while elapsed < total_seconds:
+        flash_on = frame % 2 == 0
+        if flash_on and not buzzer_is_on:
+            buzzer.on()
+            buzzer_is_on = True
+        elif not flash_on and buzzer_is_on:
+            buzzer.off()
+            buzzer_is_on = False
+
+        sink.show_page(page, flash=flash_on, frame=frame)
+        step = min(FRAME_STEP_SECONDS, total_seconds - elapsed)
+        sleep(step)
+        elapsed += step
+        frame += 1
+
+    if buzzer_is_on:
         buzzer.off()
 
 

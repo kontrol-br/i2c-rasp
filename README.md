@@ -116,7 +116,8 @@ Pontos importantes para a ligacao do modulo buzzer:
 
 - A configuracao `gpio_pin` usa a numeracao **BCM** do `gpiozero`, nao o numero fisico do conector. Portanto `gpio_pin = 18` significa **GPIO18 / pino fisico 12**. Se o fio foi colocado no **pino fisico 18**, configure `gpio_pin = 24` ou mova o fio para o pino fisico 12.
 - Modulos com VCC em 5V precisam ter **GND comum** com o Raspberry Pi. O pino de sinal deve ir ao GPIO; nao injete 5V diretamente no GPIO.
-- Se o modulo for um buzzer **ativo**, deixe `mode = "active"`. Se ele for acionado em nivel baixo por transistor, use `active_high = false`.
+- Se o modulo for um buzzer **ativo**, deixe `mode = "active"`. Se ele for acionado em nivel baixo por transistor, use `active_high = false`; quando `active_high` fica invertido, o comando `off()` mantem o sinal no nivel que liga o modulo e o buzzer pode apitar direto.
+- Em paradas/reinicios do servico, o aplicativo agora trata `SIGTERM`/`SIGINT` e fecha o GPIO para forcar o buzzer desligado antes de sair.
 - Se o som for apenas um ruido baixo/pulsante, o modulo provavelmente e **passivo/piezo** e precisa de onda PWM. Nesse caso use `mode = "pwm"`, comece com `frequency_hz = 2000` e ajuste entre 1000 e 4000 Hz.
 - No perfil ST7735, o pino fisico 18 ja e sugerido para `DC` do display (`GPIO24`), entao evite compartilhar esse GPIO com o buzzer.
 
@@ -147,7 +148,7 @@ active_high = false
 - Cada metrica principal fica em sua propria tela: **CPU, Memoria, Interfaces, Storage e Temperatura**.
 - Quando um limite e atingido, a pagina correspondente entra em modo flash.
 - CPU, Memoria, Storage e Temperatura disparam alerta individual por tela.
-- Se o buzzer estiver habilitado, ele toca enquanto a pagina em alerta estiver ativa.
+- Se o buzzer estiver habilitado, ele pulsa junto com o flash enquanto a pagina em alerta estiver ativa, em vez de ficar continuamente ligado.
 
 ### Recursos visuais do perfil ST7735
 
