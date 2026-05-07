@@ -112,12 +112,7 @@ def test_gpio_buzzer_uses_bcm_pin_and_polarity_for_active_modules(monkeypatch):
     assert device.on_count == 1
     assert device.off_count == 1
     assert device.close_count == 1
-    assert len(FakeDigitalInputDevice.instances) == 2
-    assert FakeDigitalInputDevice.instances[0].pin == 24
-    assert FakeDigitalInputDevice.instances[0].pull_up is None
-    assert FakeDigitalInputDevice.instances[0].active_state is False
-    assert FakeDigitalInputDevice.instances[0].close_count == 1
-    assert FakeDigitalInputDevice.instances[1].pin == 24
+    assert FakeDigitalInputDevice.instances == []
 
 
 def test_gpio_buzzer_pwm_mode_drives_passive_buzzers_with_tone(monkeypatch):
@@ -145,10 +140,32 @@ def test_gpio_buzzer_pwm_mode_drives_passive_buzzers_with_tone(monkeypatch):
     assert device.value == 0
     assert device.off_count == 1
     assert device.close_count == 1
-    assert len(FakeDigitalInputDevice.instances) == 2
-    assert FakeDigitalInputDevice.instances[0].pin == 18
-    assert FakeDigitalInputDevice.instances[0].close_count == 1
-    assert FakeDigitalInputDevice.instances[1].pin == 18
+    assert FakeDigitalInputDevice.instances == []
+
+
+def test_build_buzzer_enabled_off_primes_and_releases_output_without_input_probe(
+    monkeypatch,
+):
+    FakeDigitalBuzzer.instances.clear()
+    FakeDigitalInputDevice.instances.clear()
+    install_fake_gpiozero(monkeypatch)
+
+    buzzer = build_buzzer(BuzzerConfig(enabled=True, gpio_pin=18, active_high=False))
+    buzzer.off()
+
+    assert len(FakeDigitalBuzzer.instances) == 1
+    assert FakeDigitalBuzzer.instances[0].off_count == 1
+    assert FakeDigitalBuzzer.instances[0].close_count == 1
+
+    buzzer.on()
+    buzzer.off()
+    buzzer.close()
+
+    assert len(FakeDigitalBuzzer.instances) == 2
+    assert FakeDigitalBuzzer.instances[1].on_count == 1
+    assert FakeDigitalBuzzer.instances[1].off_count == 1
+    assert FakeDigitalBuzzer.instances[1].close_count == 1
+    assert FakeDigitalInputDevice.instances == []
 
 
 def test_build_buzzer_disabled_releases_configured_gpio_as_floating_input(monkeypatch):
