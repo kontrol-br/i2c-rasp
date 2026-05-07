@@ -19,6 +19,7 @@ class GpioBuzzer(Buzzer):
         if config.mode == "pwm":
             self._buzzer = _build_pwm_buzzer(config)
             self._on_value = config.duty_cycle
+            self.off()
             return
 
         from gpiozero import Buzzer as GpioZeroBuzzer
@@ -29,6 +30,7 @@ class GpioBuzzer(Buzzer):
             initial_value=False,
         )
         self._on_value = None
+        self.off()
 
     def on(self) -> None:
         if self._on_value is None:
@@ -40,6 +42,7 @@ class GpioBuzzer(Buzzer):
         self._buzzer.off()
 
     def close(self) -> None:
+        self.off()
         self._buzzer.close()
 
 

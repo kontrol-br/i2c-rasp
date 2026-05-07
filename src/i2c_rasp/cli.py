@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
-from time import sleep
 from datetime import datetime
+from time import sleep
 from zoneinfo import ZoneInfo
 
 from i2c_rasp.alerting import evaluate_page_alerts
@@ -23,7 +23,11 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=9100, help="Porta do exporter para --host.")
     parser.add_argument("--url", help="URL completa para teste rapido.")
     parser.add_argument("--once", action="store_true", help="Renderiza uma rodada e encerra.")
-    parser.add_argument("--terminal", action="store_true", help="Forca saida no terminal em vez do OLED.")
+    parser.add_argument(
+        "--terminal",
+        action="store_true",
+        help="Forca saida no terminal em vez do OLED.",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -36,6 +40,7 @@ def main() -> None:
 
     sink = _build_sink(config.display.width, config.display.height, config.oled, args.terminal)
     buzzer = build_buzzer(config.buzzer)
+    buzzer.off()
 
     # Duas coletas por host permitem calcular CPU e throughput de rede na primeira tela.
     for host in hosts:
@@ -141,6 +146,7 @@ def _show_page_with_alert(
     once: bool,
 ) -> None:
     if not alert:
+        buzzer.off()
         if once:
             sink.show_page(page, flash=False, frame=0)
             return
@@ -158,14 +164,17 @@ def _show_page_with_alert(
         buzzer.off()
 
 
-def _animate_page(sink, page: list[str], total_seconds: float, flash: bool, flash_blink: bool) -> None:
+def _animate_page(
+    sink,
+    page: list[str],
+    total_seconds: float,
+    flash: bool,
+    flash_blink: bool,
+) -> None:
     elapsed = 0.0
     frame = 0
     while elapsed < total_seconds:
-        if flash_blink:
-            flash_on = frame % 2 == 0
-        else:
-            flash_on = flash
+        flash_on = frame % 2 == 0 if flash_blink else flash
         sink.show_page(page, flash=flash_on, frame=frame)
         step = min(FRAME_STEP_SECONDS, total_seconds - elapsed)
         sleep(step)
