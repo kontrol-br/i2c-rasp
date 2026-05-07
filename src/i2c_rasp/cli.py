@@ -300,13 +300,36 @@ def _show_page_with_alert(
         return
 
     total_seconds = page_seconds * 2.0
-    buzzer.on()
     try:
         if once:
+            buzzer.on()
             sink.show_page(page, flash=True, frame=0)
             return
-        _animate_page(sink, page, total_seconds, flash=True, flash_blink=True)
+        _animate_alert_page(sink, buzzer, page, total_seconds)
     finally:
+        buzzer.off()
+
+
+def _animate_alert_page(sink, buzzer, page: list[str], total_seconds: float) -> None:
+    elapsed = 0.0
+    frame = 0
+    buzzer_is_on = False
+    while elapsed < total_seconds:
+        flash_on = frame % 2 == 0
+        if flash_on and not buzzer_is_on:
+            buzzer.on()
+            buzzer_is_on = True
+        elif not flash_on and buzzer_is_on:
+            buzzer.off()
+            buzzer_is_on = False
+
+        sink.show_page(page, flash=flash_on, frame=frame)
+        step = min(FRAME_STEP_SECONDS, total_seconds - elapsed)
+        sleep(step)
+        elapsed += step
+        frame += 1
+
+    if buzzer_is_on:
         buzzer.off()
 
 
