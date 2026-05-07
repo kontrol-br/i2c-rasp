@@ -54,9 +54,7 @@ class GpioBuzzer(Buzzer):
     def __init__(self, config: BuzzerConfig) -> None:
         self._config = config
         self._buzzer = None
-        self._release_device = None
         self._on_value = config.duty_cycle if config.mode == "pwm" else None
-        self.off()
 
     def on(self) -> None:
         self._ensure_device()
@@ -66,24 +64,15 @@ class GpioBuzzer(Buzzer):
         self._buzzer.value = self._on_value
 
     def off(self) -> None:
-        if self._buzzer is not None:
-            self._buzzer.off()
-            self._buzzer.close()
-            self._buzzer = None
-        self._ensure_released()
+        self._close_output_device()
 
     def close(self) -> None:
-        if self._buzzer is not None:
-            self._buzzer.off()
-            self._buzzer.close()
-            self._buzzer = None
-        self._close_release_device()
+        self._close_output_device()
 
     def _ensure_device(self) -> None:
         if self._buzzer is not None:
             return
 
-        self._close_release_device()
         if self._config.mode == "pwm":
             self._buzzer = _build_pwm_buzzer(self._config)
             return
@@ -96,23 +85,12 @@ class GpioBuzzer(Buzzer):
             initial_value=False,
         )
 
-    def _ensure_released(self) -> None:
-        if self._release_device is not None:
+    def _close_output_device(self) -> None:
+        if self._buzzer is None:
             return
-
-        from gpiozero import DigitalInputDevice
-
-        self._release_device = DigitalInputDevice(
-            self._config.gpio_pin,
-            pull_up=None,
-            active_state=False,
-        )
-
-    def _close_release_device(self) -> None:
-        if self._release_device is None:
-            return
-        self._release_device.close()
-        self._release_device = None
+        self._buzzer.off()
+        self._buzzer.close()
+        self._buzzer = None
 
 
 def _build_pwm_buzzer(config: BuzzerConfig):
@@ -139,7 +117,7 @@ def build_buzzer(config: BuzzerConfig) -> Buzzer:
         print(
             "Buzzer habilitado: "
             f"GPIO={config.gpio_pin}, mode={config.mode}, active_high={config.active_high}. "
-            "O GPIO fica como entrada flutuante quando o buzzer esta em off.",
+            "O GPIO e liberado depois de cada pulso para evitar som continuo em off.",
             flush=True,
         )
         return GpioBuzzer(config)

@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-
 MONITORED_METRIC_NAMES = frozenset(
     {
         "node_cpu_seconds_total",
@@ -154,7 +153,5 @@ class SampleSet:
 
     def by_label(self, name: str, label: str) -> dict[str, Sample]:
         return {
-            sample.labels[label]: sample
-            for sample in self.values(name)
-            if label in sample.labels
+            sample.labels[label]: sample for sample in self.values(name) if label in sample.labels
         }
