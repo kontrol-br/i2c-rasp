@@ -95,7 +95,7 @@ temperature_celsius = 75
 
 [buzzer]
 enabled = false
-# Com enabled=false, o app nao inicializa o GPIO do buzzer; o pino fica liberado.
+# Com enabled=false, o app configura o GPIO do buzzer como entrada flutuante/alta impedancia.
 # gpiozero usa numeracao BCM: GPIO18 fica no pino fisico 12 do Raspberry Pi.
 gpio_pin = 18
 # "active" para buzzers ativos; "pwm" para buzzers passivos/piezo.
@@ -118,7 +118,7 @@ Pontos importantes para a ligacao do modulo buzzer:
 - A configuracao `gpio_pin` usa a numeracao **BCM** do `gpiozero`, nao o numero fisico do conector. Portanto `gpio_pin = 18` significa **GPIO18 / pino fisico 12**. Se o fio foi colocado no **pino fisico 18**, configure `gpio_pin = 24` ou mova o fio para o pino fisico 12.
 - Modulos com VCC em 5V precisam ter **GND comum** com o Raspberry Pi. O pino de sinal deve ir ao GPIO; nao injete 5V diretamente no GPIO.
 - Se o modulo for um buzzer **ativo**, deixe `mode = "active"`. Se ele for acionado em nivel baixo por transistor, use `active_high = false`; quando `active_high` fica invertido, o comando `off()` mantem o sinal no nivel que liga o modulo e o buzzer pode apitar direto.
-- Com `enabled = false`, o aplicativo nao dispara alertas sonoros e nao inicializa o GPIO do buzzer; o pino fica liberado/alta impedancia, igual ao intervalo observado durante restart do servico.
+- Com `enabled = false`, o aplicativo nao dispara alertas sonoros e configura o GPIO do buzzer como entrada flutuante/alta impedancia, igual ao intervalo observado durante restart do servico.
 - Em paradas/reinicios do servico, o aplicativo trata `SIGTERM`/`SIGINT` e fecha/libera o GPIO antes de sair.
 - Se o som for apenas um ruido baixo/pulsante, o modulo provavelmente e **passivo/piezo** e precisa de onda PWM. Nesse caso use `mode = "pwm"`, comece com `frequency_hz = 2000` e ajuste entre 1000 e 4000 Hz.
 - No perfil ST7735, o pino fisico 18 ja e sugerido para `DC` do display (`GPIO24`), entao evite compartilhar esse GPIO com o buzzer.
@@ -145,7 +145,7 @@ mode = "active"
 active_high = false
 ```
 
-Exemplo para silenciar completamente o buzzer, deixando o GPIO liberado enquanto o servico roda:
+Exemplo para silenciar completamente o buzzer, deixando o GPIO como entrada flutuante enquanto o servico roda:
 
 ```toml
 [buzzer]
@@ -189,8 +189,8 @@ Interpretacao rapida:
 - O log `Buzzer habilitado: GPIO=18, mode=pwm, active_high=False` confirma que o servico esta lendo a secao `[buzzer]` e que `enabled = true`; se isso nao era esperado, confira o arquivo passado em `ExecStart`.
 - Se `--buzzer-debug off` **nao** silenciar, teste inverter `active_high` no TOML e rode o comando novamente.
 - Se `active_high = true` e `active_high = false` falharem no `off`, use `raw-low` e `raw-high`: eles ignoram `active_high` e colocam o GPIO fisicamente em nivel baixo/alto. O nivel que silenciar o modulo indica a polaridade eletrica correta.
-- Se `raw-low` e `raw-high` acionarem o buzzer, mas ele silenciar quando o processo termina/reinicia, isso indica que o seu modulo precisa do GPIO liberado/alta impedancia para ficar quieto. Nesse caso use `enabled = false` para silenciar ou deixe `enabled = true` apenas se aceitar som durante paginas em alerta; quando estiver em `off`, o app libera o GPIO.
-- Se `enabled = false` e o buzzer ainda liga junto com o servico, suspeite de outro pino inicializado pelo display. No perfil ST7735, `spi_dc_pin = 24` usa GPIO24/pino fisico 18; se o fio do buzzer estiver nesse pino, o display vai aciona-lo mesmo com `[buzzer]` desabilitado. Teste com `--buzzer-debug-pin 24` e, se confirmar, mova o fio do buzzer para um GPIO livre ou altere o pino DC do display conforme a fiacao real.
+- Se `raw-low` e `raw-high` acionarem o buzzer, mas ele silenciar quando o processo termina/reinicia, isso indica que o seu modulo precisa do GPIO liberado/alta impedancia para ficar quieto. Nesse caso use `enabled = false` para silenciar ou deixe `enabled = true` apenas se aceitar som durante paginas em alerta; quando estiver em `off`, o app deixa o GPIO como entrada flutuante.
+- Se `enabled = false` e o buzzer ainda liga junto com o servico, confirme no log que aparece `Buzzer desabilitado; GPIO 18 sera mantido como entrada flutuante/alta impedancia`; se aparecer mensagem antiga, o servico ainda esta rodando codigo antigo. Se a mensagem estiver correta, suspeite de outro pino inicializado pelo display. No perfil ST7735, `spi_dc_pin = 24` usa GPIO24/pino fisico 18; se o fio do buzzer estiver nesse pino, o display vai aciona-lo mesmo com `[buzzer]` desabilitado. Teste com `--buzzer-debug-pin 24` e, se confirmar, mova o fio do buzzer para um GPIO livre ou altere o pino DC do display conforme a fiacao real.
 - Se `--buzzer-debug on` e `--buzzer-debug off` parecem invertidos, a polaridade correta do modulo e a oposta da configurada.
 - Se o servico apita mas o debug manual nao apita, compare o caminho do `--config` no unit file do systemd com o arquivo editado.
 
@@ -199,7 +199,7 @@ Interpretacao rapida:
 - Cada metrica principal fica em sua propria tela: **CPU, Memoria, Interfaces, Storage e Temperatura**.
 - Quando um limite e atingido, a pagina correspondente entra em modo flash.
 - CPU, Memoria, Storage e Temperatura disparam alerta individual por tela.
-- Se o buzzer estiver habilitado, ele pulsa junto com o flash enquanto a pagina em alerta estiver ativa; fora dos momentos de alerta, o GPIO do buzzer fica liberado.
+- Se o buzzer estiver habilitado, ele pulsa junto com o flash enquanto a pagina em alerta estiver ativa; fora dos momentos de alerta, o GPIO do buzzer fica como entrada flutuante.
 
 ### Recursos visuais do perfil ST7735
 

@@ -42,7 +42,7 @@ temperature_celsius = 75
 
 [buzzer]
 enabled = false
-# Com enabled=false, o app nao inicializa o GPIO do buzzer; o pino fica liberado.
+# Com enabled=false, o app configura o GPIO do buzzer como entrada flutuante/alta impedancia.
 # gpiozero usa numeracao BCM: GPIO18 fica no pino fisico 12 do Raspberry Pi.
 gpio_pin = 18
 # "active" para buzzers ativos; "pwm" para buzzers passivos/piezo.
